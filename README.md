@@ -67,47 +67,47 @@ If interrupted, resume from a later step:
 `./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -n 8`
 
 ---
+
 ## Output
 
 All outputs are written to the `out/` folder.
 Assume your input junction file is `sample.txt` → `<b> = sample`.
 
-Core junction outputs
+**Core junction outputs**
 
-<b>.sorted.bed — sorted junctions
+- `${basename}`.sorted.bed — sorted junctions
 
-<b>.jproc.txt — processed junctions
+- `${basename}`.jproc.txt — processed junctions
 
-<b>.jbund.txt — junctions + coverage
+- `${basename}`.jbund.txt — junctions + coverage
 
-<b>.jscore.txt — LightGBM scores (junctions)
+- `${basename}`.jscore.txt — LightGBM scores (junctions)
 
-<b>.jpos.txt — score-positive junctions
+- `${basename}`.jpos.txt — score-positive junctions
 
-<b>.jpos.ptf — PTF for score-positive junctions
+- `${basename}`.jpos.ptf — PTF for score-positive junctions
 
-Round-2 / TSSTES outputs
+**Round-2 / TSSTES outputs**
 
-<b>.bw.bedGraph — BigWig converted to BedGraph
+- `${basename}`.bw.bedGraph — BigWig converted to BedGraph
 
-<b>.r2.bund.txt — round-2 bundles
+- `${basename}`.r2.bund.txt — round-2 bundles
 
-<b>.r2.metrics.txt — TSSTES metrics
+- `${basename}`.r2.metrics.txt — TSSTES metrics
 
-<b>.r2.metrics.ptf — PTF after metrics
+- `${basename}`.r2.metrics.ptf — PTF after metrics
 
-<b>.r2.tsstes.ptf — TSS/CPAS only
+- `${basename}`.r2.tsstes.ptf — TSS/CPAS only
 
-<b>.r2.tsstes.scores.txt — LightGBM scores (TSS/CPAS)
+- `${basename}`.r2.tsstes.scores.txt — LightGBM scores (TSS/CPAS)
 
-<b>.r2.tsstes.pos.txt — score-positive TSS/CPAS
+- `${basename}`.r2.tsstes.pos.txt — score-positive TSS/CPAS
 
+- `${basename}`.r2.tsstes.pos.eval.txt — evaluation vs annotation (only with -a)
 
-<b>.r2.tsstes.pos.eval.txt — evaluation vs annotation (only with -a)
+**Final combined output**
 
-Final combined output
-
-<b>.combo.ptf.tsv — combined score-positive junctions + TSS/CPAS
+- `${basename}`.combo.ptf.tsv — combined score-positive junctions + TSS/CPAS
 
 ---
 
