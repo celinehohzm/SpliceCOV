@@ -10,3 +10,15 @@ __pycache__/
 # Project-specific (heavy)
 data/
 scripts/out/
+# Large artifacts produced by experiments
+scripts/model_output/
+scripts/*.bedgraph
+scripts/*.bed
+scripts/*bundles*.txt
+scripts/*processed*.txt
+scripts/*ptf*.txt
+scripts/chess3.0.1.assembly.primary.uniquess.bed
+scripts/Small_Intestine.def.coverage.bedgraph
+scripts/Small_Intestine.def.junctions.bed_bundle.txt
+scripts/liver.processtiebrush_round2.tsstes.ptf_with_labels.txt
+
