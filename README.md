@@ -102,8 +102,29 @@ Round-2 / TSSTES outputs
 
 <b>.r2.tsstes.pos.txt — score-positive TSS/CPAS
 
+
 <b>.r2.tsstes.pos.eval.txt — evaluation vs annotation (only with -a)
 
 Final combined output
 
 <b>.combo.ptf.tsv — combined score-positive junctions + TSS/CPAS
+
+---
+
+## Arguments
+
+**Usage:**
+
+` ./splicecov.sh [OPTIONS...] `
+
+
+Options:
+``` 
+  -j <file>    input TieBrush junction file (required)
+  -c <file>    input coverage BigWig file (required)
+  -a <file>    GTF annotation (optional). Enables evaluation.
+  -n <int>     step number to start from (default: 1). Steps are 1 → 15.
+  -h           show help message
+
+```
+
