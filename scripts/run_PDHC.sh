@@ -1,0 +1,1 @@
+./ccb/salz1/choh1/spliceCov/scripts/spliceCOV.sh -j /ccb/salz4-1/shinder/data/PPMI/BAM/filtered/kept_alignments/tiebrush/tiecov/PD.tb.junctions.bed -b /home/choh1/spliceCOV/PD_HC/PD/PD.tb.coverage.bedgraph -c /ccb/salz4-1/shinder/data/PPMI/BAM/filtered/kept_alignments/tiebrush/tiecov/PD.tb.coverage.bw.bigwig 

@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Editors/OS
+.DS_Store
+*.swp
+
+# Project-specific (heavy)
+data/
+scripts/out/

@@ -1,0 +1,39 @@
+# conda-recipe/meta.yaml
+package:
+  name: process_cram_pipeline
+  version: "1.0.0"
+
+source:
+  path: ..
+
+build:
+  number: 1
+  script: bash build.sh
+
+requirements:
+  build:
+    - {{ compiler('c') }}  # If you have C dependencies
+    - make
+  run:
+    - python=3.8
+    - perl
+    - awk
+
+  host:
+    - python=3.8
+    - perl
+    - awk
+
+test:
+  commands:
+    - process_cram_files.sh --help
+
+about:
+  home: "https://github.com/yourusername/process_cram_pipeline"
+  license: "MIT"
+  summary: "A pipeline to process CRAM files using tiecov, Perl, Python scripts, and awk."
+
+extra:
+  recipe-maintainers:
+    - yourusername
+
