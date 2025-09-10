@@ -200,31 +200,32 @@ base_name="$(basename "$input_tiebrush_junc" .txt)"
 outdir="out"
 mkdir -p "$outdir"
 
-processed_junc="$outdir/${base_name}_processed.txt"
-processed_junc_bundle="$outdir/${base_name}_bundle.txt"
-processed_junc_bundle_w_scores="$outdir/${base_name}_bundle_scores.txt"
-processed_junc_bundle_w_scores_scpositive="$outdir/${base_name}_bundle_scores_scpositive.txt"
-processed_junc_bundle_w_scores_scpositive_ptf="$outdir/${base_name}_bundle_scores_scpositive.ptf"
+
+processed_junc="$outdir/${base_name}.jproc.txt"
+processed_junc_bundle="$outdir/${base_name}.jbund.txt"
+processed_junc_bundle_w_scores="$outdir/${base_name}.jscore.txt"
+processed_junc_bundle_w_scores_scpositive="$outdir/${base_name}.jpos.txt"
+processed_junc_bundle_w_scores_scpositive_ptf="$outdir/${base_name}.jpos.ptf"
 
 # Annotation-dependent outputs
-annotation_introns="$outdir/annotation_introns.bed"
-annotation_uniquess="$outdir/${base_name}_annotation_uniquess.bed"
-tiebrush_uniquess="$outdir/${base_name}_tiebrush_uniquess.bed"
-tiebrush_uniquess_in_annotation="$outdir/${base_name}_tiebrush_uniquess_in_annotation.bed"
-tiebrush_unique_tsstes_in_annotation="$outdir/${base_name}_tiebrush_unique_tsstes_in_annotation.bed"
+annotation_introns="$outdir/ann.introns.bed"
+annotation_uniquess="$outdir/${base_name}.ann.uss.bed"
+tiebrush_uniquess="$outdir/${base_name}.base.uss.bed"
+tiebrush_uniquess_in_annotation="$outdir/${base_name}.base.uss.in_ann.bed"
+tiebrush_unique_tsstes_in_annotation="$outdir/${base_name}.base.tsstes.in_ann.bed"
 
 # Round-2 / TSSTES outputs
-round1_processed_junc="$outdir/${base_name}_round1_processed_juncs.txt"
-round2_processed_bundles="$outdir/${base_name}_round2_processed_bundles.txt"
-round2_processed_bundles_w_metrics="$outdir/${base_name}_round2_processed_bundles_w_metrics.txt"
-round2_processed_bundles_w_metrics_ptf="$outdir/${base_name}_round2_processed_bundles_w_metrics_ptf.txt"
-round2_processed_bundles_w_metrics_tsstes_ptf="$outdir/${base_name}_round2_processed_bundles_w_metrics_tsstes_ptf.txt"
-round2_processed_bundles_w_metrics_tsstes_ptf_w_scores="$outdir/${base_name}_round2_processed_bundles_w_metrics_tsstes_ptf_w_scores.txt"
-round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive="$outdir/${base_name}_round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive.txt"
-round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive_eval="$outdir/${base_name}_round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive_eval.txt"
+round1_processed_junc="$outdir/${base_name}.r1.jproc.txt"
+round2_processed_bundles="$outdir/${base_name}.r2.bund.txt"
+round2_processed_bundles_w_metrics="$outdir/${base_name}.r2.metrics.txt"
+round2_processed_bundles_w_metrics_ptf="$outdir/${base_name}.r2.metrics.ptf"
+round2_processed_bundles_w_metrics_tsstes_ptf="$outdir/${base_name}r2.tsstes.ptf"
+round2_processed_bundles_w_metrics_tsstes_ptf_w_scores="$outdir/${base_name}.r2.tsstes.scores.txt"
+round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive="$outdir/${base_name}.r2.tsstes.pos.txt"
+round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive_eval="$outdir/${base_name}.r2.tsstes.pos.eval.txt"
 
 # Converted BedGraph path (generated from the BigWig before Step 8)
-converted_bedgraph="$outdir/${base_name}.from_bigwig.bedGraph"
+converted_bedgraph="$outdir/${base_name}.bw.bedGraph"
 
 # ---------------------------
 # Pipeline
@@ -373,7 +374,7 @@ if [ "$start_step" -le 15 ]; then
   "${helpers_dir}/combine_ptfs.sh" \
     "$processed_junc_bundle_w_scores_scpositive" \
     "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive" \
-    > "$outdir/${base_name}_combined_ptf.tsv"
+    > "$outdir/${base_name}_combined.ptf"
 fi
 
 log "spliceCOV complete!"
