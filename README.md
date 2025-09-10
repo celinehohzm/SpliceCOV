@@ -119,12 +119,20 @@ Final combined output
 
 
 Options:
+
 ``` 
   -j <file>    input TieBrush junction file (required)
   -c <file>    input coverage BigWig file (required)
   -a <file>    GTF annotation (optional). Enables evaluation.
   -n <int>     step number to start from (default: 1). Steps are 1 → 15.
   -h           show help message
-
 ```
+
+---
+## Example Use Cases
+
+- Explore novel splice junctions in RNA-seq datasets
+- Assess whether uORF microproteins are independently transcribed
+- Generate filtered inputs for transcriptome assembly
+- Benchmark predicted junctions and TSS/CPAS against GENCODE/RefSeq
 
