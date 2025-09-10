@@ -1,36 +1,109 @@
-SpliceCOV
+# SpliceCOV
 
-SpliceCOV is a command-line pipeline that scores splice junctions and transcription start/termination events (TSS/CPAS) from RNA-seq coverage and (optionally) evaluates predictions against a reference annotation.
+SpliceCOV is a command-line pipeline that processes RNA-seq coverage and junction data to identify and score **splice junctions** and **transcription start/termination events (TSS/CPAS)**.  
+It can also evaluate predictions against a genome annotation (GTF) if provided.
 
-If you’re new to this:
+---
 
-A splice junction is where exons join after splicing.
+## Getting Started
 
-A BigWig is a compact file showing read coverage along the genome.
+```bash
+git clone https://github.com/celinehohzm/SpliceCOV.git
+cd SpliceCOV
 
-SpliceCOV combines junction coordinates with coverage to identify well-supported junctions and TSS/CPAS.
+# Minimal run (junction + coverage only)
+./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig
 
-Quick start
-# Minimal run (no annotation)
-./splicecov.sh -j path/to/tiebrush_junctions.txt -c path/to/coverage.bigWig
+# Run with annotation (adds evaluation steps)
+./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -a gencode.v43.annotation.gtf
 
-# With annotation (adds evaluation steps)
-./splicecov.sh -j path/to/tiebrush_junctions.txt -c path/to/coverage.bigWig -a path/to/annotation.gtf
+# Resume from step 8
+./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -n 8
 
+# Show help
+./splicecov.sh -h
+```
 
-All outputs land in out/. The final combined PTF is:
+---
+## Installation
 
-out/<basename>.combo.ptf.tsv
+SpliceCOV is written in Bash with helper scripts in Perl and Python.
 
+**Requirements**
 
-where <basename> is your junction filename without the .txt suffix.
+- `bash` (≥4)
+- Standard Linux tools: `awk`, `sort`, `comm` (comm only if using -a)
+- `bigWigToBedGraph` (from UCSC Genome Browser utilities)
+- Python ≥3.8 with:
+  - `lightgbm`
+  - `numpy`
+  - `pandas`
 
-Requirements
+Install Python deps with conda:
+```conda create -n splicecov python=3.10
+conda activate splicecov
+pip install lightgbm numpy pandas
+```
 
-Bash, awk, sort, comm (comm used only when -a is provided)
+---
+## Usage
+**Junction-only mode**
 
-bigWigToBedGraph (UCSC tools) for BigWig → BedGraph conversion
+If you have TieBrush junctions and a BigWig coverage file, run:
 
-Python 3 with packages used by helper scripts (e.g., LightGBM)
+`./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig`
 
-(Optional) /usr/bin/time or gtime for a run summary
+**Annotation mode**
+
+If you also provide a **GTF annotation**, SpliceCOV will build reference introns and unique splice sites, and evaluate predictions:
+
+`./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -a gencode.v43.annotation.gtf`
+
+**Resuming with `-n`**
+
+SpliceCOV runs as numbered steps (1 → 15).
+If interrupted, resume from a later step:
+
+`./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -n 8`
+
+---
+## Output
+
+All outputs are written to the `out/` folder.
+Assume your input junction file is `sample.txt` → `<b> = sample`.
+
+Core junction outputs
+
+<b>.sorted.bed — sorted junctions
+
+<b>.jproc.txt — processed junctions
+
+<b>.jbund.txt — junctions + coverage
+
+<b>.jscore.txt — LightGBM scores (junctions)
+
+<b>.jpos.txt — score-positive junctions
+
+<b>.jpos.ptf — PTF for score-positive junctions
+
+Round-2 / TSSTES outputs
+
+<b>.bw.bedGraph — BigWig converted to BedGraph
+
+<b>.r2.bund.txt — round-2 bundles
+
+<b>.r2.metrics.txt — TSSTES metrics
+
+<b>.r2.metrics.ptf — PTF after metrics
+
+<b>.r2.tsstes.ptf — TSS/CPAS only
+
+<b>.r2.tsstes.scores.txt — LightGBM scores (TSS/CPAS)
+
+<b>.r2.tsstes.pos.txt — score-positive TSS/CPAS
+
+<b>.r2.tsstes.pos.eval.txt — evaluation vs annotation (only with -a)
+
+Final combined output
+
+<b>.combo.ptf.tsv — combined score-positive junctions + TSS/CPAS
