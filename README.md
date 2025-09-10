@@ -76,33 +76,21 @@ Assume your input junction file is `sample.txt` → `<b> = sample`.
 **Core junction outputs**
 
 - `${basename}`.sorted.bed — sorted junctions
-
 - `${basename}`.jproc.txt — processed junctions
-
 - `${basename}`.jbund.txt — junctions + coverage
-
 - `${basename}`.jscore.txt — LightGBM scores (junctions)
-
 - `${basename}`.jpos.txt — score-positive junctions
-
 - `${basename}`.jpos.ptf — PTF for score-positive junctions
 
 **Round-2 / TSSTES outputs**
 
 - `${basename}`.bw.bedGraph — BigWig converted to BedGraph
-
 - `${basename}`.r2.bund.txt — round-2 bundles
-
 - `${basename}`.r2.metrics.txt — TSSTES metrics
-
 - `${basename}`.r2.metrics.ptf — PTF after metrics
-
 - `${basename}`.r2.tsstes.ptf — TSS/CPAS only
-
 - `${basename}`.r2.tsstes.scores.txt — LightGBM scores (TSS/CPAS)
-
 - `${basename}`.r2.tsstes.pos.txt — score-positive TSS/CPAS
-
 - `${basename}`.r2.tsstes.pos.eval.txt — evaluation vs annotation (only with -a)
 
 **Final combined output**
