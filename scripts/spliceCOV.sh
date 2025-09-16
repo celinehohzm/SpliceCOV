@@ -6,10 +6,11 @@ IFS=$'\n\t'
 # Self-timing wrapper (GNU time)
 # ---------------------------
 _find_time_cmd() {
-  if command -v /usr/bin/time >/dev/null 2>&1; then
-    echo "/usr/bin/time"
-  elif command -v gtime >/dev/null 2>&1; then
+  if command -v gtime >/dev/null 2>&1; then
     echo "gtime"
+  elif /usr/bin/time -v true >/dev/null 2>&1; then
+    # Only use /usr/bin/time if it understands -v (GNU)
+    echo "/usr/bin/time"
   else
     echo ""
   fi
