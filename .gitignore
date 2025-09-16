@@ -22,3 +22,4 @@ scripts/Small_Intestine.def.coverage.bedgraph
 scripts/Small_Intestine.def.junctions.bed_bundle.txt
 scripts/liver.processtiebrush_round2.tsstes.ptf_with_labels.txt
 
+test/
