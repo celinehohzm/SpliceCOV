@@ -9,7 +9,7 @@ It can also evaluate predictions against a genome annotation (GTF) if provided.
 
 ```bash
 git clone https://github.com/celinehohzm/SpliceCOV.git
-cd SpliceCOV
+cd SpliceCOV/scripts
 
 # Minimal run (junction + coverage only)
 ./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig
