@@ -82,10 +82,33 @@ If interrupted, resume from a later step:
 
 `./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -n 8`
 
+## Arguments
+
+**Usage:**
+
+` ./splicecov.sh [OPTIONS...] `
+
+
+Options:
+
+``` 
+  -j <file>    input TieBrush junction file (required)
+  -c <file>    input coverage BigWig file (required)
+  -a <file>    GTF annotation (optional). Enables evaluation.
+  -n <int>     step number to start from (default: 1). Steps are 1 → 15.
+  -h           show help message
+```
+
 ---
 
-## Output
+## Input
 
+
+
+
+---
+
+## Output 
 All outputs are written to the `out/` folder.
 Assume your input junction file is `sample.txt` → `<b> = sample`.
 
@@ -113,30 +136,9 @@ Assume your input junction file is `sample.txt` → `<b> = sample`.
 
 - `${basename}`.combo.ptf.tsv — combined score-positive junctions + TSS/CPAS
 
----
-
-## Arguments
-
-**Usage:**
-
-` ./splicecov.sh [OPTIONS...] `
-
-
-Options:
-
-``` 
-  -j <file>    input TieBrush junction file (required)
-  -c <file>    input coverage BigWig file (required)
-  -a <file>    GTF annotation (optional). Enables evaluation.
-  -n <int>     step number to start from (default: 1). Steps are 1 → 15.
-  -h           show help message
-```
 
 ---
-## Example Use Cases
+## Running with Stringtie
 
-- Explore novel splice junctions in RNA-seq datasets
-- Assess whether uORF microproteins are independently transcribed
-- Generate filtered inputs for transcriptome assembly
-- Benchmark predicted junctions and TSS/CPAS against GENCODE/RefSeq
+`stringtie sample.bam -ptf splicecov.ptf -o `
 
