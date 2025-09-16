@@ -29,21 +29,28 @@ cd SpliceCOV/scripts
 
 SpliceCOV is written in Bash with helper scripts in Perl and Python.
 
-**Requirements**
+### Requirements
 
 - `bash` (≥4)
-- Standard Linux tools: `awk`, `sort`, `comm` (comm only if using -a)
+- Standard Linux tools: `awk`, `sort`, `comm` (comm only if using `-a`)
 - `bigWigToBedGraph` (from UCSC Genome Browser utilities)
 - Python ≥3.8 with:
   - `lightgbm`
   - `numpy`
   - `pandas`
+- **Optional (recommended):** `GNU time` for detailed runtime/memory stats  
+  - On macOS, install via:  
+    ```bash
+    brew install gnu-time
+    ```
+    and it will be available as `gtime`.
 
-Install Python deps with conda:
-```conda create -n splicecov python=3.10
+### Python setup with conda
+
+```bash
+conda create -n splicecov python=3.10
 conda activate splicecov
 pip install lightgbm numpy pandas
-```
 
 ---
 ## Usage
