@@ -51,6 +51,7 @@ SpliceCOV is written in Bash with helper scripts in Perl and Python.
 conda create -n splicecov python=3.10
 conda activate splicecov
 pip install lightgbm numpy pandas
+```
 
 ---
 ## Usage
