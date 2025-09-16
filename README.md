@@ -34,6 +34,14 @@ SpliceCOV is written in Bash with helper scripts in Perl and Python.
 - `bash` (≥4)
 - Standard Linux tools: `awk`, `sort`, `comm` (comm only if using `-a`)
 - `bigWigToBedGraph` (from UCSC Genome Browser utilities)
+  - **Linux/macOS:** Download precompiled binaries from the UCSC Genome Browser site:  
+    http://hgdownload.soe.ucsc.edu/admin/exe/  
+    Choose the folder for your system (`linux.x86_64/` or `macOSX.x86_64/`), download `bigWigToBedGraph`, and place it somewhere in your `$PATH` (e.g. `/usr/local/bin/`).  
+  - **macOS (Homebrew alternative):**  
+    ```bash
+    brew install ucsc-genome-browser
+    ```
+    This provides many UCSC utilities, including `bigWigToBedGraph`.
 - Python ≥3.8 with:
   - `lightgbm`
   - `numpy`
