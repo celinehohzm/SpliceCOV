@@ -1,6 +1,6 @@
 # SpliceCOV
 
-SpliceCOV is a command-line pipeline that processes RNA-seq coverage and junction data to identify and score **splice junctions** and **transcription start/termination events (TSS/CPAS)**.  
+SpliceCOV is a command-line pipeline that processes RNA-seq coverage and junction data to identify and score **splice junctions** and **transcription start/termination events (TSS/CPAS)** using a LightGBM-based machine learning model.  
 It can also evaluate predictions against a genome annotation (GTF) if provided.
 
 ---
