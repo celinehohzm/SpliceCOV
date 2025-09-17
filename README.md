@@ -31,32 +31,23 @@ SpliceCOV is written in Bash with helper scripts in Perl and Python.
 
 ### Requirements
 
-- `bash` (≥4)
+- `bash` (version 4 or newer)
 - Standard Linux tools: `awk`, `sort`, `comm` (comm only if using `-a`)
-- `bigWigToBedGraph` (from UCSC Genome Browser utilities)
-  - **Linux/macOS:** Download precompiled binaries from the UCSC Genome Browser site:  
-    http://hgdownload.soe.ucsc.edu/admin/exe/  
-    Choose the folder for your system (`linux.x86_64/` or `macOSX.x86_64/`), download `bigWigToBedGraph`, and place it somewhere in your `$PATH` (e.g. `/usr/local/bin/`).  
-  - **macOS (Homebrew alternative):**  
-    ```bash
-    brew install ucsc-genome-browser
-    ```
-    This provides many UCSC utilities, including `bigWigToBedGraph`.
-- Python ≥3.8 with:
+- UCSC `bigWigToBedGraph` (from UCSC Genome Browser utilities)
+  - Linux/macOS binaries: `http://hgdownload.soe.ucsc.edu/admin/exe/`
+  - Put the binary in your `PATH` (e.g., `/usr/local/bin/`).
+  - macOS (Homebrew): `brew install ucsc-genome-browser`
+- Python (version 3.8 or newer) with:
   - `lightgbm`
   - `numpy`
   - `pandas`
 - **Optional (recommended):** `GNU time` for detailed runtime/memory stats  
-  - On macOS, install via:  
-    ```bash
-    brew install gnu-time
-    ```
-    and it will be available as `gtime`.
+  - macOS: `brew install gnu-time` (available as `gtime`)
 
 ### Python setup with conda
 
 ```bash
-conda create -n splicecov python=3.10
+conda create -n splicecov python=3.10 # Python version 3.10
 conda activate splicecov
 pip install lightgbm numpy pandas
 ```
@@ -82,32 +73,75 @@ If interrupted, resume from a later step:
 
 `./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -n 8`
 
-## Arguments
-
-**Usage:**
-
-` ./splicecov.sh [OPTIONS...] `
-
-
-Options:
-
-``` 
+**Full CLI:**
+```
+./spliceCOV.sh
   -j <file>    input TieBrush junction file (required)
   -c <file>    input coverage BigWig file (required)
-  -a <file>    GTF annotation (optional). Enables evaluation.
+  -a <file>    GTF annotation (optional). Enables evaluation steps.
   -n <int>     step number to start from (default: 1). Steps are 1 → 15.
-  -h           show help message
+  -b <str>     *basename* for ALL outputs (optional). See “How basename is chosen”.
+  -s <num>     SpliceCOV score threshold in [0,1] (optional).
+               Passed to LightGBM scoring at Step 4 (junctions) and Step 12 (TSS/CPAS).
+               If omitted, the scripts use their internal default (0.4).
+  -h           show help
 ```
 
+**How basename -b is chosen**
+
+SpliceCOV writes all outputs to out/ and prefixes them with a basename:
+
+If you pass -b <name>, SpliceCOV uses exactly <name> as the basename.
+
+Allowed: letters, numbers, underscores, dashes (no slashes/spaces).
+
+Example: -b `gtex_v8_spleen`
+
+If no `-b` is given, SpliceCOV derives the basename from the junctions file given to `-j`:
+
+
+
+Examples:
+
+`-j /data/juncs/sample.txt`. then, basename = sample
+
+All output files will be named like `out/${basename}.*`.
+
+
+
+**What does -s (score threshold) do?**
+
+`-s` sets the probability threshold used when converting LightGBM scores to positive predictions.
+
+It is forwarded to:
+
+Step 4: junction scoring (LightGBM_no_normscale.py)
+
+Step 12: TSS/CPAS scoring (LightGBM_tss.py)
+
+Valid range is 0–1. If you omit -s, the Python scripts use their default (0.4).
+
+
+
+Examples:
+
+Stricter calling (fewer positives)
+
+`./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -s 0.8`
+
+More permissive calling (more positives)
+
+`./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -s 0.25`
+
 ---
+## Inputs (recommended to generate from TieBrush & TieCov)
 
-## Input
-
-
-
+SpliceCOV expects:
+- A TieBrush junctions file (-j) — aggregated splice junctions
+- A BigWig coverage file (-c) — aggregated per-base read coverage
+These typically come from the TieBrush and TieCov tools (https://github.com/alevar/tiebrush).
 
 ---
-
 ## Output 
 All outputs are written to the `out/` folder.
 Assume your input junction file is `sample.txt` → `<b> = sample`.
@@ -140,5 +174,21 @@ Assume your input junction file is `sample.txt` → `<b> = sample`.
 ---
 ## Running with Stringtie
 
-`stringtie sample.bam -ptf splicecov.ptf -o `
+`stringtie sample.bam -ptf out/<basename>_combined.ptf -o sample.stringtie.gtf `
+
+--- 
+## Tips & Troubleshooting
+
+- If you see “`bigWigToBedGraph: command not found`”, install the UCSC utilities and ensure they’re in your PATH.
+
+- On macOS, GNU time appears as gtime; SpliceCOV auto-detects it for better runtime/memory summaries.
+
+- Use `-b` to keep runs tidy and identifiable (e.g., -b `gtex_v8_brain_cortex`).
+
+- Tune `-s` to adjust precision/recall in your calls; higher thresholds are stricter.
+
+---
+**Questions or issues?** Please open a GitHub issue with your command line, environment (OS, Python version, tool versions), and a short log excerpt.
+
+
 
