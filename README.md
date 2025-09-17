@@ -87,51 +87,46 @@ If interrupted, resume from a later step:
   -h           show help
 ```
 
+---
+
 **How basename -b is chosen**
 
 SpliceCOV writes all outputs to out/ and prefixes them with a basename:
 
-If you pass -b <name>, SpliceCOV uses exactly <name> as the basename.
+1. If you pass -b <name>, SpliceCOV uses exactly <name> as the basename.
+   
+- Allowed: letters, numbers, underscores, dashes (no slashes/spaces).
+- Example: -b `gtex_v8_spleen`
 
-Allowed: letters, numbers, underscores, dashes (no slashes/spaces).
+2. If no `-b` is given, SpliceCOV derives the basename from the junctions file given to `-j`:
 
-Example: -b `gtex_v8_spleen`
-
-If no `-b` is given, SpliceCOV derives the basename from the junctions file given to `-j`:
-
-
-
-Examples:
-
-`-j /data/juncs/sample.txt`. then, basename = sample
+- Example: `-j /data/juncs/sample.txt`. then, basename = sample
 
 All output files will be named like `out/${basename}.*`.
 
 
-
+---
 **What does -s (score threshold) do?**
 
-`-s` sets the probability threshold used when converting LightGBM scores to positive predictions.
+- `-s` sets the probability threshold used when converting LightGBM scores to positive predictions.
 
-It is forwarded to:
+- It is forwarded to:
 
-Step 4: junction scoring (LightGBM_no_normscale.py)
+  - Step 4: junction scoring (LightGBM_no_normscale.py)
 
-Step 12: TSS/CPAS scoring (LightGBM_tss.py)
+  - Step 12: TSS/CPAS scoring (LightGBM_tss.py)
 
-Valid range is 0–1. If you omit -s, the Python scripts use their default (0.4).
+- Valid range is 0–1. If you omit -s, the Python scripts use their default (0.4).
 
 
+**Examples:**
+```
+# Stricter calling (fewer positives)
+./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -s 0.8
 
-Examples:
-
-Stricter calling (fewer positives)
-
-`./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -s 0.8`
-
-More permissive calling (more positives)
-
-`./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -s 0.25`
+# More permissive calling (more positives)
+./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -s 0.25
+```
 
 ---
 ## Inputs (recommended to generate from TieBrush & TieCov)
