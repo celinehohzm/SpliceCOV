@@ -139,7 +139,6 @@ These typically come from the TieBrush and TieCov tools (https://github.com/alev
 ---
 ## Output 
 All outputs are written to the `out/` folder.
-Assume your input junction file is `sample.txt` → `<b> = sample`.
 
 **Core junction outputs**
 
