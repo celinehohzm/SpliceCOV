@@ -78,16 +78,23 @@ If interrupted, resume from a later step:
 
 **Full CLI:**
 ```
-./spliceCOV.sh
-  -j <file>    input TieBrush junction file (required)
-  -c <file>    input coverage BigWig file (required)
-  -a <file>    GTF annotation (optional). Enables evaluation steps.
-  -n <int>     step number to start from (default: 1). Steps are 1 → 15.
-  -b <str>     *basename* for ALL outputs (optional). See “How basename is chosen”.
-  -s <num>     SpliceCOV score threshold in [0,1] (optional).
-               Passed to LightGBM scoring at Step 4 (junctions) and Step 12 (TSS/CPAS).
-               If omitted, the scripts use their internal default (0.4).
-  -h           show help
+Usage: splicecov.sh -j <input_tiebrush_junc> -c <input_tiebrush_bigwig> [-a <annotation_gtf>] [-n <start_step>] [-b <basename>] [-s <threshold>]
+
+Required:
+  -j <file> : input TieBrush junction file 
+  -c <file> : input coverage BigWig file 
+
+Optional:
+  -a <file> : input annotation (GTF). If provided, annotation-dependent steps
+              (building introns/unique splice sites and evaluation) will run.
+  -n <int>  : step number to start from (default: 1). 1 = sort junctions, 2 = add coverage, ...
+  -b <str>  : basename to use for ALL output files; overrides the default from -j.
+  -s <num>  : probability threshold in [0,1] to pass to LightGBM scoring scripts (steps 4 & 12).
+              If omitted, those scripts use their own default (0.4).
+
+Notes:
+  • All outputs are written to the "out/" directory.
+  • If -a is omitted, evaluation steps are skipped automatically.
 ```
 
 ---
