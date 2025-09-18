@@ -28,3 +28,4 @@ test/Small_Intestine.*
 test/Small_Intestine.def.coverage.bigwig
 test/Small_Intestine.def.junctions.bed
 test/chess3.0.1.gtf
+scripts/model_output/blood.process_tiebrush.processed_round1.bundles_with_labels.txt
