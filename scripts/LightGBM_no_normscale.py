@@ -11,11 +11,11 @@ import argparse
 import sys
 
 # Paths to the saved model and encoders
-TRAINING_FILE = '/ccb/salz1/choh1/spliceCov/scripts/model_output/spleen.process_tiebrush.processed_round1.bundles_with_labels.txt'
-MODEL_FILE = '/ccb/salz1/choh1/spliceCov/scripts/model_output/0606_spleen_no_normscale_lightgbm_model.txt'
-ENCODERS_FILE = '/ccb/salz1/choh1/spliceCov/scripts/model_output/0606_spleen_no_normscale_label_encoders.pkl'
-FEATURE_IMPORTANCES_FILE = '/ccb/salz1/choh1/spliceCov/scripts/model_output/0606_spleen_no_normscale_norm_feature_importances.csv'
-OUTPUT_DIR = '/ccb/salz1/choh1/spliceCov/scripts/model_output/'
+TRAINING_FILE = './model_output/spleen.process_tiebrush.processed_round1.bundles_with_labels.txt'
+MODEL_FILE = './model_output/0606_spleen_no_normscale_lightgbm_model.txt'
+ENCODERS_FILE = './model_output/0606_spleen_no_normscale_label_encoders.pkl'
+FEATURE_IMPORTANCES_FILE = './model_output/0606_spleen_no_normscale_norm_feature_importances.csv'
+OUTPUT_DIR = './model_output/'
 
 def train_model(print_row_index=0, scaling_factor=1.0):
     print("Starting model training...")
@@ -30,19 +30,9 @@ def train_model(print_row_index=0, scaling_factor=1.0):
 
     # Define column names for the training file (13 columns: 12 features + label)
     columns_training = [
-        'chromosome',       # $1
-        'position',         # $2
-        'junction_id',      # $3
-        'num_samples',      # $4 - normalize and scale as before
-        'strand',           # $5
-        'perc',             # $6 - Binarize
-        'cov_diff',         # $7 
-        'perc_cov_diff',    # $8
-        'junc_len',         # $9 - keep raw
-        'smooth_metric',    # $10 - keep raw
-        'cov_change_dir',   # $11 (0/1 already, no encoding)
-        'event',            # $12
-        'label'             # $13
+        'chromosome', 'position', 'junction_id', 'num_samples', 'strand',
+        'perc', 'cov_diff', 'perc_cov_diff', 'junc_len', 'smooth_metric',
+        'cov_change_dir', 'event', 'label'
     ]
     data.columns = columns_training
 
@@ -88,7 +78,6 @@ def train_model(print_row_index=0, scaling_factor=1.0):
     X = X.drop(['num_samples', 'num_samples_med_norm'], axis=1)
 
     # 3) Keep 'junc_len' raw (no log-transform)
-    #    Do not log-transform; simply rename for clarity
     X['junc_len_raw'] = X['junc_len']
     X = X.drop('junc_len', axis=1)
 
@@ -96,9 +85,6 @@ def train_model(print_row_index=0, scaling_factor=1.0):
     X['smooth_metric_raw'] = X['smooth_metric']
     X = X.drop('smooth_metric', axis=1)
 
-    # At this point the feature columns (order matters) are:
-    # ['cov_diff', 'perc_cov_diff', 'cov_change_dir', 'perc_binarized', 
-    #  'num_samples_scaled', 'junc_len_raw', 'smooth_metric_raw']
     print(f"Training features: {list(X.columns)}")
 
     # Save encoders/normalization parameters for future use
@@ -108,12 +94,10 @@ def train_model(print_row_index=0, scaling_factor=1.0):
     encoders = {
         'coverage_median': coverage_median,
         'scaling_factor': scaling_factor
-        # We no longer need to save smooth_metric mean/std or anything for junc_len
     }
     with open(ENCODERS_FILE, 'wb') as f:
         pickle.dump(encoders, f)
 
-    # Print sample row
     print(f"\n--- Features for Training Data Row Index: {print_row_index} ---")
     if 0 <= print_row_index < len(X):
         sample_features = X.iloc[print_row_index]
@@ -121,7 +105,6 @@ def train_model(print_row_index=0, scaling_factor=1.0):
     else:
         print(f"Requested row index {print_row_index} is out of bounds. Total rows: {len(X)}")
 
-    # Split train/test
     print("\nSplitting data into training and testing sets...")
     try:
         X_train, X_test, y_train, y_test = train_test_split(
@@ -131,12 +114,10 @@ def train_model(print_row_index=0, scaling_factor=1.0):
         print(f"Error during train-test split: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # Create LightGBM datasets
     print("Creating LightGBM datasets...")
     train_data = lgb.Dataset(X_train, label=y_train)
     test_data = lgb.Dataset(X_test, label=y_test)
 
-    # LightGBM parameters
     print("Setting up LightGBM parameters...")
     params = {
         'objective': 'binary',
@@ -150,7 +131,6 @@ def train_model(print_row_index=0, scaling_factor=1.0):
         'min_data_in_leaf': 10
     }
 
-    # Train with early stopping
     print("Training the LightGBM model with early stopping...")
     try:
         model = lgb.train(
@@ -164,7 +144,6 @@ def train_model(print_row_index=0, scaling_factor=1.0):
         print(f"Error during model training: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # Evaluate
     print("Evaluating the model on the test set...")
     try:
         y_pred_prob = model.predict(X_test, num_iteration=model.best_iteration)
@@ -182,14 +161,13 @@ def train_model(print_row_index=0, scaling_factor=1.0):
     print("Confusion Matrix:")
     print(confusion_matrix(y_test, y_pred))
 
-    # Print and save feature importances
     print("\nFeature importances:")
     feature_importances = pd.DataFrame({
         'feature': model.feature_name(),
         'importance': model.feature_importance(importance_type='gain')
     })
     feature_importances_sorted = feature_importances.sort_values(by='importance', ascending=False)
-    for idx, row in feature_importances_sorted.iterrows():
+    for _, row in feature_importances_sorted.iterrows():
         print(f"  {row['feature']}: {row['importance']:.2f}")
 
     print(f"\nSaving feature importances to '{FEATURE_IMPORTANCES_FILE}'...")
@@ -200,7 +178,6 @@ def train_model(print_row_index=0, scaling_factor=1.0):
         print(f"Error saving feature importances: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # Save model
     print(f"\nSaving the trained model to '{MODEL_FILE}'...")
     try:
         model.save_model(MODEL_FILE)
@@ -212,7 +189,13 @@ def train_model(print_row_index=0, scaling_factor=1.0):
     return model, encoders
 
 
-def score_data(testing_file, output_file):
+def score_data(testing_file, output_file, threshold=0.4):
+    # --- NEW: threshold is now a parameter (default 0.4) ---
+    if not (0.0 <= float(threshold) <= 1.0):
+        print(f"Error: threshold must be in [0,1], got {threshold}", file=sys.stderr)
+        sys.exit(1)
+    print(f"Using classification threshold: {threshold}")
+
     print(f"Loading the pretrained model from '{MODEL_FILE}'...")
     try:
         model = lgb.Booster(model_file=MODEL_FILE)
@@ -235,38 +218,15 @@ def score_data(testing_file, output_file):
         print(f"Error loading testing file: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # Define column names for training and testing
     columns_training = [
-        'chromosome',
-        'position',
-        'junction_id',
-        'num_samples',
-        'strand',
-        'perc',
-        'cov_diff',
-        'perc_cov_diff',
-        'junc_len',
-        'smooth_metric',
-        'cov_change_dir',
-        'event',
-        'label'
+        'chromosome','position','junction_id','num_samples','strand','perc',
+        'cov_diff','perc_cov_diff','junc_len','smooth_metric','cov_change_dir','event','label'
     ]
     columns_testing = [
-        'chromosome',
-        'position',
-        'junction_id',
-        'num_samples',
-        'strand',
-        'perc',
-        'cov_diff',
-        'perc_cov_diff',
-        'junc_len',
-        'smooth_metric',
-        'cov_change_dir',
-        'event'
+        'chromosome','position','junction_id','num_samples','strand','perc',
+        'cov_diff','perc_cov_diff','junc_len','smooth_metric','cov_change_dir','event'
     ]
 
-    # Assign column names based on number of columns in the file
     if data.shape[1] == 13:
         data.columns = columns_training
     elif data.shape[1] == 12:
@@ -276,20 +236,15 @@ def score_data(testing_file, output_file):
         sys.exit(1)
 
     print("Extracting features...")
-    # Preserve raw 'smooth_metric' for override use later
     smooth_metric_raw = data['smooth_metric'].copy()
+    X = data[['num_samples','perc','cov_diff','perc_cov_diff','junc_len','smooth_metric','cov_change_dir']].copy()
 
-    # Extract the same features as in training
-    X = data[['num_samples', 'perc', 'cov_diff', 'perc_cov_diff', 'junc_len', 'smooth_metric', 'cov_change_dir']].copy()
-
-    # 1) Binarize 'perc'
     print("Binarizing 'perc' into two categories...")
     X['perc_binarized'] = X['perc'].apply(
         lambda x: 1 if x == "1.0000-1.0000-1.0000-1.0000" else 0
     )
     X = X.drop('perc', axis=1)
 
-    # 2) Normalize 'num_samples' by median, then scale it
     coverage_median = encoders.get('coverage_median', 1.0)
     scaling_factor = encoders.get('scaling_factor', 1.0)
     if coverage_median == 0:
@@ -297,19 +252,11 @@ def score_data(testing_file, output_file):
     print(f"Normalizing 'num_samples' by median={coverage_median}, then scaling by dividing by {scaling_factor}...")
     X['num_samples_med_norm'] = X['num_samples'] / coverage_median
     X['num_samples_scaled'] = X['num_samples_med_norm'] / scaling_factor
-    X = X.drop(['num_samples', 'num_samples_med_norm'], axis=1)
+    X = X.drop(['num_samples','num_samples_med_norm'], axis=1)
 
-    # 3) Keep 'junc_len' raw (no log-transform)
-    X['junc_len_raw'] = X['junc_len']
-    X = X.drop('junc_len', axis=1)
+    X['junc_len_raw'] = X['junc_len']; X = X.drop('junc_len', axis=1)
+    X['smooth_metric_raw'] = X['smooth_metric']; X = X.drop('smooth_metric', axis=1)
 
-    # 4) Keep 'smooth_metric' raw (no standard scaling)
-    X['smooth_metric_raw'] = X['smooth_metric']
-    X = X.drop('smooth_metric', axis=1)
-
-    # At this point the feature columns should match training:
-    # ['cov_diff', 'perc_cov_diff', 'cov_change_dir', 'perc_binarized',
-    #  'num_samples_scaled', 'junc_len_raw', 'smooth_metric_raw']
     print(f"Prediction features: {list(X.columns)}")
 
     print("Making predictions...")
@@ -319,19 +266,17 @@ def score_data(testing_file, output_file):
         print(f"Error during prediction: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # Clip predictions to [0, 1]
     y_pred_prob = np.clip(y_pred_prob, 0, 1)
-    # Default binary predictions using threshold=0.4
-    y_pred = (y_pred_prob >= 0.4).astype(int)
+
+    # --- Threshold now configurable ---
+    y_pred = (y_pred_prob >= float(threshold)).astype(int)
 
     # =========================== SPECIAL OVERRIDE ===========================
-    # If the raw smooth_metric is below 10, and perc_cov_diff <= 0.25 and junc_len <= 15 then override confidence to 0.
     smooth_override_mask = (smooth_metric_raw < 15) & (data['perc_cov_diff'] <= 0.25) & (data['junc_len'] <= 20)
     y_pred_prob[smooth_override_mask] = 0.0
     y_pred[smooth_override_mask] = 0
     # ======================================================================
 
-    # Existing override for cov_change_dir == 0
     if 'cov_change_dir' in data.columns:
         override_mask_cov_change = (data['cov_change_dir'] == 0)
         y_pred_prob[override_mask_cov_change] = 0.0
@@ -356,8 +301,11 @@ if __name__ == '__main__':
                         help='Path to save the output file (scores).')
     parser.add_argument('-r', '--row', dest='row_index', type=int, default=0,
                         help='Row index to print features for during training (default: 0).')
-    parser.add_argument('-s', '--scale', dest='scaling_factor', type=float, default=1.0,
+    parser.add_argument('-x', '--scale', dest='scaling_factor', type=float, default=1.0,
                         help='Scaling factor to normalize num_samples by dividing by this number (default: 1.0).')
+    # --- NEW: threshold flag ---
+    parser.add_argument('-s', '--threshold', dest='threshold', type=float, default=0.4,
+                        help='Prediction threshold in [0,1] for converting probabilities to labels (default: 0.4).')
 
     args = parser.parse_args()
 
@@ -373,6 +321,6 @@ if __name__ == '__main__':
         print("Input file is the training file. Retraining the model...")
         train_model(print_row_index=args.row_index, scaling_factor=args.scaling_factor)
 
-    # Score data
-    score_data(args.input_file, args.output_file)
+    # Score data with user-specified threshold
+    score_data(args.input_file, args.output_file, threshold=args.threshold)
     print("Done.")

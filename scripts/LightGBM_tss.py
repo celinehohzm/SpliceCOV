@@ -123,7 +123,12 @@ def train_model(model_type, print_row_index=0):
 
 
 # Function to score new data
-def score_data(testing_file, output_file):
+def score_data(testing_file, output_file, threshold=0.4):
+    # threshold is user-configurable; default 0.4
+    if not (0.0 <= float(threshold) <= 1.0):
+        raise ValueError(f"threshold must be in [0,1], got {threshold}")
+    print(f"Using classification threshold: {threshold}")
+
     print(f"Loading the testing data from '{testing_file}'...")
     data = pd.read_csv(testing_file, sep='\t', header=None)
 
@@ -140,7 +145,7 @@ def score_data(testing_file, output_file):
         # Load the respective model and encoders
         model_file = TSS_MODEL_FILE if row_type == 'TSS' else CPAS_MODEL_FILE
         encoders_file = TSS_ENCODERS_FILE if row_type == 'TSS' else CPAS_ENCODERS_FILE
-        model = lgb.Booster(model_file=model_file)
+        model = lgb. Booser(model_file=model_file)
         with open(encoders_file, 'rb') as f:
             encoders = pickle.load(f)
 
@@ -164,7 +169,7 @@ def score_data(testing_file, output_file):
 
         # Assign predictions back to the original DataFrame
         data.loc[subset.index, 'confidence_score'] = y_pred_prob
-        data.loc[subset.index, 'predicted_label'] = (y_pred_prob >= 0.4).astype(int)
+        data.loc[subset.index, 'predicted_label'] = (y_pred_prob >= float(threshold)).astype(int)
 
     print(f"Saving scored data to '{output_file}'...")
     data.to_csv(output_file, sep='\t', index=False)
@@ -177,6 +182,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train and predict using TSS and CPAS models.')
     parser.add_argument('-i', '--input', dest='testing_file', required=True, help='Input file for prediction.')
     parser.add_argument('-o', '--output', dest='output_file', required=True, help='Output file for predictions.')
+    parser.add_argument('-s', '--threshold', dest='threshold', type=float, default=0.4,
+                        help='Prediction threshold in [0,1] for converting probabilities to labels (default: 0.4).')
 
     args = parser.parse_args()
 
@@ -185,4 +192,4 @@ if __name__ == '__main__':
     train_model('CPAS')
 
     # Score the data
-    score_data(args.testing_file, args.output_file)
+    score_data(args.testing_file, args.output_file, threshold=args.threshold)

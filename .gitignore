@@ -11,7 +11,6 @@ __pycache__/
 data/
 scripts/out/
 # Large artifacts produced by experiments
-scripts/model_output/
 scripts/*.bedgraph
 scripts/*.bed
 scripts/*bundles*.txt
