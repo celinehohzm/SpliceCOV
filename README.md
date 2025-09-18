@@ -100,7 +100,7 @@ SpliceCOV writes all outputs to out/ and prefixes them with a basename:
 
 2. If no `-b` is given, SpliceCOV derives the basename from the junctions file given to `-j`:
 
-- Example: `-j /data/juncs/sample.txt`. then, basename = sample
+- Example: `-j /data/juncs/sample.txt`. then, `$basename` = `sample`
 
 All output files will be named like `out/${basename}.*`.
 
