@@ -1,6 +1,7 @@
 # SpliceCOV
 
-SpliceCOV is a command-line pipeline that processes RNA-seq coverage and junction data to identify and score **splice junctions** and **transcription start/termination events (TSS/CPAS)** using a LightGBM-based machine learning model.  
+SpliceCOV uses a **LightGBM-based machine learning model** to score and predict splice sites and TSS/TESs from RNA-seq coverage evidence.
+By providing these predictions, SpliceCOV improves **precision while maintaining sensitivity**, especially when running StringTie with the --ptf option.
 It can also evaluate predictions against a genome annotation (GTF) if provided.
 
 ---
@@ -166,7 +167,7 @@ All outputs are written to the `out/` folder.
 
 
 ---
-## Running with Stringtie
+## Running Stringtie with SpliceCOV's output!
 
 After generating the ``${basename}`.combined.ptf` file, you can run Stringtie with the `-ptf` option!
 
