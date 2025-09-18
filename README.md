@@ -162,11 +162,13 @@ All outputs are written to the `out/` folder.
 
 **Final combined output**
 
-- `${basename}`.combo.ptf.tsv — combined score-positive junctions + TSS/CPAS
+- `${basename}`.combined.ptf — combined score-positive splice-sites + TSS/TESs
 
 
 ---
 ## Running with Stringtie
+
+After generating the ``${basename}`.combined.ptf` file, you can run Stringtie with the `-ptf` option!
 
 `stringtie sample.bam -ptf out/<basename>_combined.ptf -o sample.stringtie.gtf `
 
