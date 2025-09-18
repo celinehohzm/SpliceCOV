@@ -146,6 +146,28 @@ SpliceCOV expects:
 - A BigWig coverage file (-c) — aggregated per-base read coverage
 These typically come from the TieBrush and TieCov tools (https://github.com/alevar/tiebrush).
 
+
+
+Junctions file format (columns in order: chr, junction_start, junction_end, junction_name, number_of_samples, strand):
+```
+track name=junctions
+chr1    10620   21193   JUNC00000001    1       +
+chr1    11348   11410   JUNC00000002    1       -
+chr1    11410   17721   JUNC00000003    1       -
+chr1    11439   21424   JUNC00000004    1       -
+chr1    11671   12009   JUNC00000005    12      +
+```
+
+
+Bedgraph file format generated from bigwig (colummns in order: chr, position_start, position_end, coverage):
+```
+chr1    10535   10538   1
+chr1    10538   10540   2
+chr1    10540   10542   4
+chr1    10542   10545   7
+chr1    10545   10560   8
+```
+
 ---
 ## Output 
 All outputs are written to the `out/` folder.
