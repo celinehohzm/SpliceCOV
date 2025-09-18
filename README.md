@@ -176,9 +176,9 @@ All outputs are written to the `out/` folder.
 
 
 ---
-## Running Stringtie with SpliceCOV's output!
+## Running Stringtie with SpliceCOV's output
 
-After generating the ``${basename}`.combined.ptf` file, you can run Stringtie with the `-ptf` option!
+After generating the ``${basename}`.combined.ptf` file, you can run Stringtie with the `-ptf` option. Ideally it will boost precision while retaining sensitivity when running with SpliceCOV's `-ptf` predictions.
 
 `stringtie sample.bam -ptf out/<basename>_combined.ptf -o sample.stringtie.gtf `
 
