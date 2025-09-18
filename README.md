@@ -1,7 +1,9 @@
 # SpliceCOV
 
 SpliceCOV uses a **LightGBM-based machine learning model** to score and predict splice sites and TSS/TESs from RNA-seq coverage evidence.
+
 By providing these predictions, SpliceCOV improves **precision while maintaining sensitivity**, especially when running StringTie with the --ptf option.
+
 It can also evaluate predictions against a genome annotation (GTF) if provided.
 
 ---
