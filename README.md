@@ -139,12 +139,14 @@ All output files will be named like `out/${basename}.*`.
 ```
 
 ---
-## Inputs (recommended to generate from TieBrush & TieCov)
+## Inputs (recommended to generate with TieBrush & TieCov)
 
-SpliceCOV expects:
-- A TieBrush junctions file (-j) — aggregated splice junctions
-- A BigWig coverage file (-c) — aggregated per-base read coverage
-These typically come from the TieBrush and TieCov tools (https://github.com/alevar/tiebrush).
+SpliceCOV expects the following:
+
+- TieBrush junctions file (-j) — aggregated splice junctions
+- BigWig coverage file (-c) — aggregated per-base read coverage
+
+Both of these files are typically produced by the TieBrush and TieCov tools (https://github.com/alevar/tiebrush).
 
 
 
