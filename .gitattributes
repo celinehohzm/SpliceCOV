@@ -2,3 +2,4 @@
 *.bed filter=lfs diff=lfs merge=lfs -text
 test/Bladder.def.coverage.bigwig filter=lfs diff=lfs merge=lfs -text
 test/Bladder.def.junctions.bed filter=lfs diff=lfs merge=lfs -text
+scripts/model_output/spleen.process_tiebrush.processed_round1.bundles_with_labels.txt filter=lfs diff=lfs merge=lfs -text
