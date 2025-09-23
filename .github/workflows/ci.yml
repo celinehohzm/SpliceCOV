@@ -27,6 +27,19 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install libomp (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          brew install libomp
+          brew --prefix libomp
+          ls -l "$(brew --prefix libomp)/lib"
+
+      - name: Export DYLD_LIBRARY_PATH for libomp (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          echo "DYLD_LIBRARY_PATH=$(brew --prefix libomp)/lib:${DYLD_LIBRARY_PATH:-}" >> $GITHUB_ENV
+
+
       - name: pip install requirements
         if: hashFiles('requirements.txt') != ''
         run: python -m pip install --upgrade pip && pip install -r requirements.txt
