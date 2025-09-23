@@ -100,5 +100,3 @@ help:
         @echo "  make PREFIX=$$HOME/.local release    Install into user prefix"
         @echo "  make uninstall                       Remove installed launcher and shared dir"
         @echo "  make help                            Show this help"
-
-
