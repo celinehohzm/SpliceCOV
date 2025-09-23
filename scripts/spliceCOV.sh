@@ -3,62 +3,14 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # ---------------------------
-# Self-timing wrapper (GNU time)
+# Portable logging helpers
 # ---------------------------
-_find_time_cmd() {
-  if command -v gtime >/dev/null 2>&1; then
-    echo "gtime"
-  elif /usr/bin/time -v true >/dev/null 2>&1; then
-    echo "/usr/bin/time"
-  else
-    echo ""
-  fi
-}
+ts() { date '+%F %T'; }                 # works on macOS Bash 3.2, Linux, Windows/MSYS2
+log() { printf '[%s] %s\n' "$(ts)" "$*" >&2; }
+die() { echo "FATAL: $*" >&2; exit 1; }
 
-if [[ -z "${SPLICECOV_WRAPPED:-}" ]]; then
-  _time_cmd="$(_find_time_cmd)"
-  if [[ -n "$_time_cmd" ]]; then
-    _timefile="$(mktemp -t splicecov.time.XXXXXX)"
-    set +e
-    SPLICECOV_WRAPPED=1 "$_time_cmd" -v -o "$_timefile" bash "$0" "$@"
-    _rc=$?
-    set -e
-    if [[ -f "$_timefile" ]]; then
-      _elapsed_str="$(grep -E 'Elapsed \(wall clock\) time' "$_timefile" | awk -F': ' '{print $2}')"
-      _maxrss_kb="$(grep -E 'Maximum resident set size' "$_timefile" | awk -F': ' '{gsub(/ /,"",$2); print $2}')"
-      to_seconds() {
-        local IFS=':'; read -r -a p <<< "$1"
-        local h=0 m=0 s=0
-        if   ((${#p[@]}==3)); then h=${p[0]}; m=${p[1]}; s=${p[2]}
-        elif ((${#p[@]}==2)); then m=${p[0]}; s=${p[1]}
-        else                    s=${p[0]}; fi
-        s=${s%.*}
-        echo $((10#$h*3600 + 10#$m*60 + 10#$s))
-      }
-      _elapsed_sec="$(to_seconds "${_elapsed_str:-0}")"
-      if [[ -n "${_maxrss_kb:-}" ]]; then
-        _maxrss_mb=$(( (10#${_maxrss_kb} + 1023) / 1024 ))
-        printf "[%(%F %T)T] Run summary: wall=%s (%ss), MaxRSS=%s KB (~%s MB)\n" -1 "${_elapsed_str:-N/A}" "${_elapsed_sec:-N/A}" "${_maxrss_kb}" "${_maxrss_mb}" >&2
-      else
-        printf "[%(%F %T)T] Run summary: wall=%s (%ss). (Install GNU time to report MaxRSS)\n" -1 "${_elapsed_str:-N/A}" "${_elapsed_sec:-N/A}" >&2
-      fi
-      rm -f "$_timefile"
-    else
-      printf "[%(%F %T)T] Run summary unavailable (timing file missing).\n" -1 >&2
-    fi
-    exit $_rc
-  else
-    _t0=$(date +%s)
-    set +e
-    SPLICECOV_WRAPPED=1 bash "$0" "$@"
-    _rc=$?
-    set -e
-    _t1=$(date +%s)
-    _dt=$((_t1 - _t0))
-    printf "[%(%F %T)T] Run summary: wall=%ss. (Install GNU time for MaxRSS)\n" -1 "$_dt" >&2
-    exit $_rc
-  fi
-fi
+need_cmd()  { command -v "$1" >/dev/null 2>&1 || die "'$1' not found in PATH"; }
+need_file() { [[ -f "$1" ]] || die "Missing helper script: $1"; }
 
 # ---------------------------
 # Usage / CLI
@@ -86,13 +38,14 @@ USAGE
   exit 1
 }
 
-# Defaults
+# ---------------------------
+# Defaults & arg parsing
+# ---------------------------
 start_step=1
 input_annotation=""
 basename_arg=""
 score_arg=""
 
-# Parse arguments
 while getopts ":j:c:a:n:b:s:h" opt; do
   case $opt in
     j) input_tiebrush_junc="$OPTARG" ;;
@@ -107,23 +60,29 @@ while getopts ":j:c:a:n:b:s:h" opt; do
   esac
 done
 
-# Basic input validation
+# ---------------------------
+# Validate inputs
+# ---------------------------
 [[ -z "${input_tiebrush_junc:-}" || -z "${input_tiebrush_bigwig:-}" ]] && usage
 [[ ! -f "$input_tiebrush_junc" ]]   && { echo "ERROR: Junction file not found: $input_tiebrush_junc" >&2; exit 2; }
 [[ ! -f "$input_tiebrush_bigwig" ]] && { echo "ERROR: BigWig file not found: $input_tiebrush_bigwig" >&2; exit 2; }
+
 anno_present=false
 if [[ -n "$input_annotation" ]]; then
   [[ ! -f "$input_annotation" ]] && { echo "ERROR: Annotation GTF not found: $input_annotation" >&2; exit 2; }
   anno_present=true
 fi
+
 if ! [[ "$start_step" =~ ^[0-9]+$ ]] || [ "$start_step" -lt 1 ]; then
   echo "ERROR: -n requires a positive integer." >&2; exit 2
 fi
+
 if [[ -n "$basename_arg" ]]; then
   if [[ "$basename_arg" =~ [/\ ] ]]; then
     echo "ERROR: -b basename must not contain slashes or spaces." >&2; exit 2
   fi
 fi
+
 # Validate -s if provided: allow 0, 1, or decimals in-between
 if [[ -n "$score_arg" ]]; then
   if ! [[ "$score_arg" =~ ^(0(\.[0-9]+)?|1(\.0+)?)$ ]]; then
@@ -131,14 +90,6 @@ if [[ -n "$score_arg" ]]; then
     exit 2
   fi
 fi
-
-# ---------------------------
-# Helpers: logging & checks
-# ---------------------------
-log() { printf "[%(%F %T)T] %s\n" -1 "$*" >&2; }
-die() { echo "FATAL: $*" >&2; exit 1; }
-need_cmd() { command -v "$1" >/dev/null 2>&1 || die "'$1' not found in PATH"; }
-need_file() { [[ -f "$1" ]] || die "Missing helper script: $1"; }
 
 # ---------------------------
 # Resolve script & helpers dir
@@ -237,12 +188,13 @@ if [ "$start_step" -le 1 ]; then
   log "Step 1a: Sorting junctions by chr,start,end (header preserved)..."
   sorted_junc="$outdir/${base_name}.sorted.bed"
 
+  # Build sort args in a portable way; feature-detect GNU sort flags
   sort_args=(-k1,1 -k2,2n -k3,3n)
-  if LC_ALL=C sort --help 2>&1 | grep -q -- '--parallel'; then
+  if LC_ALL=C sort --help 2>/dev/null | grep -q -- '--parallel'; then
     cpus="$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 1)"
     sort_args+=(--parallel="$cpus")
   fi
-  if LC_ALL=C sort --help 2>&1 | grep -q -- '-T'; then
+  if LC_ALL=C sort --help 2>/dev/null | grep -q -- '-T'; then
     sort_args+=(-T "${TMPDIR:-$outdir}")
   fi
 
@@ -263,7 +215,8 @@ fi
 
 if [ "$start_step" -le 2 ]; then
   log "Step 2: Adding bigWig signal..."
-  python "${helpers_dir}/process_tiebrush_round1_juncs_splicecov.py" "$input_tiebrush_bigwig" "$processed_junc" > "$processed_junc_bundle"
+  python "${helpers_dir}/process_tiebrush_round1_juncs_splicecov.py" \
+    "$input_tiebrush_bigwig" "$processed_junc" > "$processed_junc_bundle"
 fi
 
 # ---------------------------
@@ -295,7 +248,8 @@ fi
 # Step 6 depends on annotation
 if $anno_present && [ "$start_step" -le 6 ]; then
   log "Step 6: Evaluation (junctions vs annotation splice sites)..."
-  python "${helpers_dir}/evaluate_ptf_new.py" "$processed_junc_bundle_w_scores_scpositive" "$tiebrush_uniquess_in_annotation"
+  python "${helpers_dir}/evaluate_ptf_new.py" \
+    "$processed_junc_bundle_w_scores_scpositive" "$tiebrush_uniquess_in_annotation"
 elif ! $anno_present && [ "$start_step" -le 6 ]; then
   log "Step 6: Skipped (no annotation provided)."
 fi
