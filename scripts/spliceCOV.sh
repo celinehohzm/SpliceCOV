@@ -3,9 +3,9 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # ---------------------------
-# Portable logging helpers
+# Portable logging & helpers
 # ---------------------------
-ts() { date '+%F %T'; }                 # works on macOS Bash 3.2, Linux, Windows/MSYS2
+ts() { date '+%F %T'; }                 # portable across macOS/Linux/MSYS2
 log() { printf '[%s] %s\n' "$(ts)" "$*" >&2; }
 die() { echo "FATAL: $*" >&2; exit 1; }
 
@@ -83,7 +83,7 @@ if [[ -n "$basename_arg" ]]; then
   fi
 fi
 
-# Validate -s if provided: allow 0, 1, or decimals in-between
+# Validate -s if provided: allow 0, 1, or decimals between
 if [[ -n "$score_arg" ]]; then
   if ! [[ "$score_arg" =~ ^(0(\.[0-9]+)?|1(\.0+)?)$ ]]; then
     echo "ERROR: -s must be a number in [0,1], got '$score_arg'." >&2
@@ -100,14 +100,13 @@ helpers_dir="${SPLICECOV_HELPERS_DIR:-}"
 if [[ -z "$helpers_dir" ]]; then
   for cand in "$this_dir" "$this_dir/scripts" "$this_dir/../scripts"; do
     if [[ -d "$cand" ]]; then
-      helpers_dir="$cand"
-      break
+      helpers_dir="$cand"; break
     fi
   done
 fi
 [[ -z "$helpers_dir" ]] && die "Could not locate helpers dir. Set SPLICECOV_HELPERS_DIR."
 
-# List helper scripts we call
+# Helper scripts we call
 common_helpers=(
   "process_junctions_perc.pl"
   "process_tiebrush_round1_juncs_splicecov.py"
@@ -133,7 +132,7 @@ need_cmd python
 need_cmd awk
 need_cmd sort
 need_cmd bigWigToBedGraph
-if $anno_present; then need_cmd comm; fi
+$anno_present && need_cmd comm || true
 for s in "${common_helpers[@]}"; do need_file "${helpers_dir}/${s}"; done
 if $anno_present; then for s in "${anno_helpers[@]}"; do need_file "${helpers_dir}/${s}"; done; fi
 
@@ -175,8 +174,8 @@ round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive_eval="$outdir/
 
 converted_bedgraph="$outdir/${base_name}.bw.bedGraph"
 
-# Build a reusable flag array for LightGBM threshold (only if provided)
-score_flags=()
+# LightGBM threshold flags (guarded for set -u)
+declare -a score_flags=()
 if [[ -n "$score_arg" ]]; then
   score_flags=(-s "$score_arg")
 fi
@@ -188,7 +187,7 @@ if [ "$start_step" -le 1 ]; then
   log "Step 1a: Sorting junctions by chr,start,end (header preserved)..."
   sorted_junc="$outdir/${base_name}.sorted.bed"
 
-  # Build sort args in a portable way; feature-detect GNU sort flags
+  # Build sort args; feature-detect GNU sort flags
   sort_args=(-k1,1 -k2,2n -k3,3n)
   if LC_ALL=C sort --help 2>/dev/null | grep -q -- '--parallel'; then
     cpus="$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 1)"
@@ -236,8 +235,9 @@ fi
 if [ "$start_step" -le 4 ]; then
   log "Step 4: LightGBM scoring (junctions)..."
   python "${helpers_dir}/LightGBM_no_normscale.py" \
-    -i "$processed_junc_bundle" -o "$processed_junc_bundle_w_scores" \
-    "${score_flags[@]}"
+    -i "$processed_junc_bundle" \
+    -o "$processed_junc_bundle_w_scores" \
+    ${score_flags[@]+"${score_flags[@]}"}
 fi
 
 if [ "$start_step" -le 5 ]; then
@@ -302,7 +302,7 @@ if [ "$start_step" -le 12 ]; then
   python "${helpers_dir}/LightGBM_tss.py" \
     -i "$round2_processed_bundles_w_metrics_tsstes_ptf" \
     -o "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores" \
-    "${score_flags[@]}"
+    ${score_flags[@]+"${score_flags[@]}"}
 fi
 
 if [ "$start_step" -le 13 ]; then
