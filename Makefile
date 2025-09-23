@@ -21,82 +21,82 @@ REQ     := requirements.txt
 .PHONY: release install uninstall check-deps python-deps print-locations help
 
 release: install
-        @echo "Installed $(PKGNAME) $(VERSION) to $(PREFIX)"
-        @echo "  Launcher:     $(BINDIR)/$(PKGNAME)"
-        @echo "  Shared files: $(SHAREDIR)"
-        @echo "Run: $(PKGNAME) -h"
+	@echo "Installed $(PKGNAME) $(VERSION) to $(PREFIX)"
+	@echo "  Launcher:     $(BINDIR)/$(PKGNAME)"
+	@echo "  Shared files: $(SHAREDIR)"
+	@echo "Run: $(PKGNAME) -h"
 
 install: check-deps python-deps print-locations
-        @echo "Creating directories"
-        @mkdir -p "$(BINDIR)" "$(SHAREDIR)"
-        @echo "Copying project files to $(SHAREDIR)"
-        @for d in $(SHIP_DIRS); do \
-          if [ -d "$$d" ]; then \
-            if command -v rsync >/dev/null 2>&1; then \
-              rsync -a --delete "$$d" "$(SHAREDIR)/"; \
-            else \
-              cp -R "$$d" "$(SHAREDIR)/"; \
-            fi; \
-          fi; \
-        done
-        @echo "Marking scripts executable"
-        @find "$(SHAREDIR)/scripts" -type f -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
-        @find "$(SHAREDIR)/bin"     -type f -perm -u=x     -exec chmod +x {} \; 2>/dev/null || true
-        @echo "Installing launcher to $(BINDIR)/$(PKGNAME)"
-        @{ \
-          printf '%s\n' '#!/usr/bin/env bash'; \
-          printf '%s\n' 'set -euo pipefail'; \
-          printf 'SHAREDIR=%s\n' '$(SHAREDIR)'; \
-          printf 'ENTRY=%s\n' '$(ENTRY)'; \
-          printf '%s\n' 'export SPLICECOV_HELPERS_DIR="${SPLICECOV_HELPERS_DIR:-$SHAREDIR/scripts}"'; \
-          printf '%s\n' 'if [[ -x "$$SHAREDIR/$$ENTRY" ]]; then'; \
-          printf '%s\n' '  exec "$$SHAREDIR/$$ENTRY" "$$@"'; \
-          printf '%s\n' 'elif [[ -x "$$ENTRY" ]]; then'; \
-          printf '%s\n' '  exec "$$ENTRY" "$$@"'; \
-          printf '%s\n' 'else'; \
-          printf '%s\n' '  echo "Error: cannot find SpliceCOV entrypoint ($$ENTRY)." >&2'; \
-          printf '%s\n' '  exit 1'; \
-          printf '%s\n' 'fi'; \
-        } > "$(BINDIR)/$(PKGNAME)"
-        @chmod +x "$(BINDIR)/$(PKGNAME)"
+	@echo "Creating directories"
+	@mkdir -p "$(BINDIR)" "$(SHAREDIR)"
+	@echo "Copying project files to $(SHAREDIR)"
+	@for d in $(SHIP_DIRS); do \
+	  if [ -d "$$d" ]; then \
+	    if command -v rsync >/dev/null 2>&1; then \
+	      rsync -a --delete "$$d" "$(SHAREDIR)/"; \
+	    else \
+	      cp -R "$$d" "$(SHAREDIR)/"; \
+	    fi; \
+	  fi; \
+	done
+	@echo "Marking scripts executable"
+	@find "$(SHAREDIR)/scripts" -type f -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
+	@find "$(SHAREDIR)/bin"     -type f -perm -u=x     -exec chmod +x {} \; 2>/dev/null || true
+	@echo "Installing launcher to $(BINDIR)/$(PKGNAME)"
+	@{ \
+	  printf '%s\n' '#!/usr/bin/env bash'; \
+	  printf '%s\n' 'set -euo pipefail'; \
+	  printf 'SHAREDIR=%s\n' '$(SHAREDIR)'; \
+	  printf 'ENTRY=%s\n' '$(ENTRY)'; \
+	  printf '%s\n' 'export SPLICECOV_HELPERS_DIR="${SPLICECOV_HELPERS_DIR:-$SHAREDIR/scripts}"'; \
+	  printf '%s\n' 'if [[ -x "$$SHAREDIR/$$ENTRY" ]]; then'; \
+	  printf '%s\n' '  exec "$$SHAREDIR/$$ENTRY" "$$@"'; \
+	  printf '%s\n' 'elif [[ -x "$$ENTRY" ]]; then'; \
+	  printf '%s\n' '  exec "$$ENTRY" "$$@"'; \
+	  printf '%s\n' 'else'; \
+	  printf '%s\n' '  echo "Error: cannot find SpliceCOV entrypoint ($$ENTRY)." >&2'; \
+	  printf '%s\n' '  exit 1'; \
+	  printf '%s\n' 'fi'; \
+	} > "$(BINDIR)/$(PKGNAME)"
+	@chmod +x "$(BINDIR)/$(PKGNAME)"
 
 uninstall:
-        @echo "Removing launcher: $(BINDIR)/$(PKGNAME)"
-        @rm -f "$(BINDIR)/$(PKGNAME)" || true
-        @echo "Removing shared files: $(SHAREDIR)"
-        @rm -rf "$(SHAREDIR)" || true
-        @echo "Uninstalled $(PKGNAME)"
+	@echo "Removing launcher: $(BINDIR)/$(PKGNAME)"
+	@rm -f "$(BINDIR)/$(PKGNAME)" || true
+	@echo "Removing shared files: $(SHAREDIR)"
+	@rm -rf "$(SHAREDIR)" || true
+	@echo "Uninstalled $(PKGNAME)"
 
 check-deps:
-        @echo "Running preflight checks"
-        @command -v bash >/dev/null 2>&1   || { echo "Missing: bash" >&2; exit 1; }
-        @command -v awk  >/dev/null 2>&1   || { echo "Missing: awk"  >&2; exit 1; }
-        @command -v sort >/dev/null 2>&1   || { echo "Missing: sort" >&2; exit 1; }
-        @command -v comm >/dev/null 2>&1   || { echo "Missing: comm (coreutils)" >&2; exit 1; }
-        @command -v python3 >/dev/null 2>&1|| { echo "Missing: python3" >&2; exit 1; }
-        @command -v bigWigToBedGraph >/dev/null 2>&1 || { echo "Missing: bigWigToBedGraph (UCSC utils)" >&2; exit 1; }
-        @echo "Core dependencies found"
-        @python3 -c "import lightgbm" >/dev/null 2>&1 && echo "Python: lightgbm available" || echo "Python: lightgbm not found (will install if $(REQ) exists)"
+	@echo "Running preflight checks"
+	@command -v bash >/dev/null 2>&1   || { echo "Missing: bash" >&2; exit 1; }
+	@command -v awk  >/dev/null 2>&1   || { echo "Missing: awk"  >&2; exit 1; }
+	@command -v sort >/dev/null 2>&1   || { echo "Missing: sort" >&2; exit 1; }
+	@command -v comm >/dev/null 2>&1   || { echo "Missing: comm (coreutils)" >&2; exit 1; }
+	@command -v python3 >/dev/null 2>&1|| { echo "Missing: python3" >&2; exit 1; }
+	@command -v bigWigToBedGraph >/dev/null 2>&1 || { echo "Missing: bigWigToBedGraph (UCSC utils)" >&2; exit 1; }
+	@echo "Core dependencies found"
+	@python3 -c "import lightgbm" >/dev/null 2>&1 && echo "Python: lightgbm available" || echo "Python: lightgbm not found (will install if $(REQ) exists)"
 
 python-deps:
-        @if [ -f "$(REQ)" ]; then \
-          echo "Installing Python deps from $(REQ) (user scope)"; \
-          python3 -m pip install --user -r "$(REQ)"; \
-        else \
-          echo "No $(REQ); skipping Python deps"; \
-        fi
+	@if [ -f "$(REQ)" ]; then \
+	  echo "Installing Python deps from $(REQ) (user scope)"; \
+	  python3 -m pip install --user -r "$(REQ)"; \
+	else \
+	  echo "No $(REQ); skipping Python deps"; \
+	fi
 
 print-locations:
-        @echo "PKGNAME  = $(PKGNAME)"
-        @echo "VERSION  = $(VERSION)"
-        @echo "PREFIX   = $(PREFIX)"
-        @echo "BINDIR   = $(BINDIR)"
-        @echo "SHAREDIR = $(SHAREDIR)"
-        @echo "ENTRY    = $(ENTRY)"
+	@echo "PKGNAME  = $(PKGNAME)"
+	@echo "VERSION  = $(VERSION)"
+	@echo "PREFIX   = $(PREFIX)"
+	@echo "BINDIR   = $(BINDIR)"
+	@echo "SHAREDIR = $(SHAREDIR)"
+	@echo "ENTRY    = $(ENTRY)"
 
 help:
-        @echo "SpliceCOV Make targets"
-        @echo "  make release                         Install into $$PREFIX (default: /usr/local)"
-        @echo "  make PREFIX=$$HOME/.local release    Install into user prefix"
-        @echo "  make uninstall                       Remove installed launcher and shared dir"
-        @echo "  make help                            Show this help"
+	@echo "SpliceCOV Make targets"
+	@echo "  make release                         Install into $$PREFIX (default: /usr/local)"
+	@echo "  make PREFIX=$$HOME/.local release    Install into user prefix"
+	@echo "  make uninstall                       Remove installed launcher and shared dir"
+	@echo "  make help                            Show this help"
