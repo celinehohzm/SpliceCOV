@@ -13,6 +13,7 @@ It can also evaluate predictions against a genome annotation (GTF) if provided.
 ```bash
 git clone https://github.com/celinehohzm/SpliceCOV.git
 cd SpliceCOV
+python3 -m pip install --user -r requirements.txt
 make PREFIX="$HOME/.local" release
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc   # or ~/.zshrc
 
