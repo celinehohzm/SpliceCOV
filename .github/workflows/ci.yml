@@ -1,0 +1,150 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux_macos:
+    name: ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14]     # macOS 14 runners are arm64
+        python-version: ['3.10', '3.11', '3.12']
+
+    env:
+      PREFIX: ${{ runner.temp }}/local
+      BIN_DIR: ${{ runner.temp }}/local/bin
+      SHARE_DIR: ${{ runner.temp }}/local/share/splicecov
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: pip install requirements
+        if: hashFiles('requirements.txt') != ''
+        run: python -m pip install --upgrade pip && pip install -r requirements.txt
+
+      # Install UCSC tools for both directions
+      - name: Install UCSC bigWigToBedGraph (Linux)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          mkdir -p "$BIN_DIR"
+          curl -fsSL "https://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/bigWigToBedGraph" -o "$BIN_DIR/bigWigToBedGraph"
+          chmod +x "$BIN_DIR/bigWigToBedGraph"
+          echo "$BIN_DIR" >> $GITHUB_PATH
+          bigWigToBedGraph -h | head -n1
+
+      - name: Install UCSC bedGraphToBigWig (Linux)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          mkdir -p "$BIN_DIR"
+          curl -fsSL "https://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/bedGraphToBigWig" -o "$BIN_DIR/bedGraphToBigWig"
+          chmod +x "$BIN_DIR/bedGraphToBigWig"
+          echo "$BIN_DIR" >> $GITHUB_PATH
+          bedGraphToBigWig 2>&1 | head -n1 || true
+
+      - name: Install UCSC bigWigToBedGraph (macOS arm64)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          mkdir -p "$BIN_DIR"
+          curl -fsSL "https://hgdownload.cse.ucsc.edu/admin/exe/macOSX.arm64/bigWigToBedGraph" -o "$BIN_DIR/bigWigToBedGraph"
+          chmod +x "$BIN_DIR/bigWigToBedGraph"
+          echo "$BIN_DIR" >> $GITHUB_PATH
+          bigWigToBedGraph -h | head -n1
+
+      - name: Install UCSC bedGraphToBigWig (macOS arm64)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          mkdir -p "$BIN_DIR"
+          curl -fsSL "https://hgdownload.cse.ucsc.edu/admin/exe/macOSX.arm64/bedGraphToBigWig" -o "$BIN_DIR/bedGraphToBigWig"
+          chmod +x "$BIN_DIR/bedGraphToBigWig"
+          echo "$BIN_DIR" >> $GITHUB_PATH
+          bedGraphToBigWig 2>&1 | head -n1 || true
+
+      - name: Build & install (make release)
+        run: |
+          make PREFIX="$PREFIX" release
+          ls -l "$BIN_DIR"
+          "$BIN_DIR/splicecov" -h || true
+
+      - name: Run mini integration smoke
+        env:
+          BIN_DIR: ${{ env.BIN_DIR }}
+          BEDGRAPH_TO_BIGWIG: bedGraphToBigWig
+        run: |
+          bash tests/smoke.sh
+
+  windows_msys2:
+    name: windows-latest / MSYS2
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+
+    env:
+      MSYS2_PATH_TYPE: inherit
+      PREFIX: /c/Users/runneradmin/AppData/Local/splicecov
+      BIN_DIR: /c/Users/runneradmin/AppData/Local/splicecov/bin
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            base-devel
+            git
+            gawk
+            diffutils
+            rsync
+            curl
+            wget
+            unzip
+            python
+
+      - name: Install Python requirements (MSYS2)
+        shell: msys2 {0}
+        run: |
+          python --version
+          if [ -f requirements.txt ]; then
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt || true
+          fi
+
+      - name: Install UCSC tools (Windows .exe)
+        shell: msys2 {0}
+        run: |
+          mkdir -p "$BIN_DIR"
+          curl -fsSL "https://hgdownload.cse.ucsc.edu/admin/exe/windows.x86_64/bigWigToBedGraph.exe" -o "$BIN_DIR/bigWigToBedGraph.exe"
+          curl -fsSL "https://hgdownload.cse.ucsc.edu/admin/exe/windows.x86_64/bedGraphToBigWig.exe" -o "$BIN_DIR/bedGraphToBigWig.exe"
+          chmod +x "$BIN_DIR/bigWigToBedGraph.exe" "$BIN_DIR/bedGraphToBigWig.exe"
+          echo "export PATH=\"$BIN_DIR:\$PATH\"" >> ~/.bash_profile
+          export PATH="$BIN_DIR:$PATH"
+          "$BIN_DIR/bigWigToBedGraph.exe" 2>/dev/null | head -n1 || true
+          "$BIN_DIR/bedGraphToBigWig.exe" 2>/dev/null | head -n1 || true
+
+      - name: Build & install (make release via MSYS2)
+        shell: msys2 {0}
+        env:
+          PATH: ${{ env.BIN_DIR }}:/usr/bin:/bin:/mingw64/bin:/mingw32/bin:$PATH
+        run: |
+          make PREFIX="$PREFIX" release
+          ls -l "$BIN_DIR"
+          "$BIN_DIR/splicecov" -h || true
+
+      - name: Run mini integration smoke (MSYS2)
+        shell: msys2 {0}
+        env:
+          BIN_DIR: ${{ env.BIN_DIR }}
+          BEDGRAPH_TO_BIGWIG: bedGraphToBigWig.exe
+          PATH: ${{ env.BIN_DIR }}:/usr/bin:/bin:/mingw64/bin:/mingw32/bin:$PATH
+        run: |
+          bash tests/smoke.sh
+
