@@ -79,7 +79,7 @@ jobs:
           BIN_DIR: ${{ env.BIN_DIR }}
           BEDGRAPH_TO_BIGWIG: bedGraphToBigWig
         run: |
-          bash tests/smoke.sh
+          bash test/smoke.sh
 
   windows_msys2:
     name: windows-latest / MSYS2
@@ -146,5 +146,5 @@ jobs:
           BEDGRAPH_TO_BIGWIG: bedGraphToBigWig.exe
           PATH: ${{ env.BIN_DIR }}:/usr/bin:/bin:/mingw64/bin:/mingw32/bin:$PATH
         run: |
-          bash tests/smoke.sh
+          bash test/smoke.sh
 
