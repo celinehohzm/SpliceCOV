@@ -5,7 +5,7 @@ IFS=$'\n\t'
 # ---------------------------
 # Portable logging & helpers
 # ---------------------------
-ts() { date '+%F %T'; }                 # portable across macOS/Linux/MSYS2
+ts() { date '+%F %T'; }
 log() { printf '[%s] %s\n' "$(ts)" "$*" >&2; }
 die() { echo "FATAL: $*" >&2; exit 1; }
 
@@ -106,6 +106,12 @@ if [[ -z "$helpers_dir" ]]; then
 fi
 [[ -z "$helpers_dir" ]] && die "Could not locate helpers dir. Set SPLICECOV_HELPERS_DIR."
 
+# >>> NEW: resolve model directory once (env override supported)
+MODEL_DIR="${SPLICECOV_MODEL_DIR:-${helpers_dir%/}/model_output}"
+export SPLICECOV_MODEL_DIR="$MODEL_DIR"
+log "Models dir: $MODEL_DIR"
+# <<<
+
 # Helper scripts we call
 common_helpers=(
   "process_junctions_perc.pl"
@@ -128,7 +134,7 @@ anno_helpers=(
 # Preflight checks
 # ---------------------------
 log "Preflight: checking tools..."
-need_cmd python
+need_cmd python3             # changed to python3
 need_cmd awk
 need_cmd sort
 need_cmd bigWigToBedGraph
@@ -174,7 +180,7 @@ round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive_eval="$outdir/
 
 converted_bedgraph="$outdir/${base_name}.bw.bedGraph"
 
-# LightGBM threshold flags (guarded for set -u)
+# LightGBM threshold flags
 declare -a score_flags=()
 if [[ -n "$score_arg" ]]; then
   score_flags=(-s "$score_arg")
@@ -187,7 +193,6 @@ if [ "$start_step" -le 1 ]; then
   log "Step 1a: Sorting junctions by chr,start,end (header preserved)..."
   sorted_junc="$outdir/${base_name}.sorted.bed"
 
-  # Build sort args; feature-detect GNU sort flags
   sort_args=(-k1,1 -k2,2n -k3,3n)
   if LC_ALL=C sort --help 2>/dev/null | grep -q -- '--parallel'; then
     cpus="$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 1)"
@@ -214,7 +219,7 @@ fi
 
 if [ "$start_step" -le 2 ]; then
   log "Step 2: Adding bigWig signal..."
-  python "${helpers_dir}/process_tiebrush_round1_juncs_splicecov.py" \
+  python3 "${helpers_dir}/process_tiebrush_round1_juncs_splicecov.py" \
     "$input_tiebrush_bigwig" "$processed_junc" > "$processed_junc_bundle"
 fi
 
@@ -223,7 +228,7 @@ fi
 # ---------------------------
 if $anno_present && [ "$start_step" -le 3 ]; then
   log "Step 3: Building reference introns & unique splice sites (annotation provided)..."
-  python "${helpers_dir}/gtf_to_intron_bed.py" "$input_annotation" "$annotation_introns"
+  python3 "${helpers_dir}/gtf_to_intron_bed.py" "$input_annotation" "$annotation_introns"
   awk '{print $1, $2; print $1, $3}' "$annotation_introns" \
     | sort -k1,1 -k2,2n | uniq > "$annotation_uniquess"
   awk '{print $1, $2; print $1, $3+1}' "$input_tiebrush_junc" \
@@ -234,7 +239,8 @@ fi
 
 if [ "$start_step" -le 4 ]; then
   log "Step 4: LightGBM scoring (junctions)..."
-  python "${helpers_dir}/LightGBM_no_normscale.py" \
+  python3 "${helpers_dir}/LightGBM_no_normscale.py" \
+    --model-dir "$MODEL_DIR" \
     -i "$processed_junc_bundle" \
     -o "$processed_junc_bundle_w_scores" \
     ${score_flags[@]+"${score_flags[@]}"}
@@ -248,7 +254,7 @@ fi
 # Step 6 depends on annotation
 if $anno_present && [ "$start_step" -le 6 ]; then
   log "Step 6: Evaluation (junctions vs annotation splice sites)..."
-  python "${helpers_dir}/evaluate_ptf_new.py" \
+  python3 "${helpers_dir}/evaluate_ptf_new.py" \
     "$processed_junc_bundle_w_scores_scpositive" "$tiebrush_uniquess_in_annotation"
 elif ! $anno_present && [ "$start_step" -le 6 ]; then
   log "Step 6: Skipped (no annotation provided)."
@@ -260,11 +266,6 @@ if [ "$start_step" -le 7 ]; then
     "$processed_junc_bundle_w_scores_scpositive" \
     > "$processed_junc_bundle_w_scores_scpositive_ptf"
 fi
-
-# ---- Round-2 TSSTES path ----
-# if [ "$start_step" -le 8 ]; then
-#   python "${helpers_dir}/process_round1_splicecov_ptf_to_processed_juncs.py" ...
-# fi
 
 if [ "$start_step" -le 8 ]; then
   log "Step 8a: Converting BigWig -> BedGraph for round 2..."
@@ -278,7 +279,7 @@ fi
 
 if [ "$start_step" -le 9 ]; then
   log "Step 9: Computing TSSTES metrics (round 2)..."
-  python "${helpers_dir}/compute_round2_tsstes_metrics.py" \
+  python3 "${helpers_dir}/compute_round2_tsstes_metrics.py" \
     "$round2_processed_bundles" "$input_tiebrush_bigwig" \
     > "$round2_processed_bundles_w_metrics"
 fi
@@ -299,7 +300,8 @@ fi
 
 if [ "$start_step" -le 12 ]; then
   log "Step 12: LightGBM scoring (TSSTES)..."
-  python "${helpers_dir}/LightGBM_tss.py" \
+  python3 "${helpers_dir}/LightGBM_tss.py" \
+    --model-dir "$MODEL_DIR" \
     -i "$round2_processed_bundles_w_metrics_tsstes_ptf" \
     -o "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores" \
     ${score_flags[@]+"${score_flags[@]}"}
@@ -314,7 +316,7 @@ fi
 
 if $anno_present && [ "$start_step" -le 14 ]; then
   log "Step 14: Final TSSTES evaluation (annotation provided)..."
-  python "${helpers_dir}/evaluate_TSSTES_new.py" \
+  python3 "${helpers_dir}/evaluate_TSSTES_new.py" \
     "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive" \
     "$tiebrush_unique_tsstes_in_annotation" \
     > "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive_eval"

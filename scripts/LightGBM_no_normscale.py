@@ -10,12 +10,22 @@ from sklearn.metrics import roc_auc_score, accuracy_score, classification_report
 import argparse
 import sys
 
-# Paths to the saved model and encoders
-TRAINING_FILE = 'model_output/spleen.process_tiebrush.processed_round1.bundles_with_labels.txt'
-MODEL_FILE = 'model_output/0606_spleen_no_normscale_lightgbm_model.txt'
-ENCODERS_FILE = 'model_output/0606_spleen_no_normscale_label_encoders.pkl'
-FEATURE_IMPORTANCES_FILE = 'model_output/0606_spleen_no_normscale_norm_feature_importances.csv'
-OUTPUT_DIR = './model_output/'
+# Base: prefer explicit model dir, else helpers dir, else script dir
+_BASE = os.environ.get("SPLICECOV_MODEL_DIR")
+if not _BASE:
+    helpers = os.environ.get("SPLICECOV_HELPERS_DIR")
+    if helpers:
+        _BASE = os.path.join(helpers, "model_output")
+    else:
+        _BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model_output")
+
+MODEL_DIR = os.path.abspath(_BASE)
+
+TRAINING_FILE = os.path.join(MODEL_DIR, 'spleen.process_tiebrush.processed_round1.bundles_with_labels.txt')
+MODEL_FILE    = os.path.join(MODEL_DIR, '0606_spleen_no_normscale_lightgbm_model.txt')
+ENCODERS_FILE = os.path.join(MODEL_DIR, '0606_spleen_no_normscale_label_encoders.pkl')
+FEATURE_IMPORTANCES_FILE = os.path.join(MODEL_DIR, '0606_spleen_no_normscale_norm_feature_importances.csv')
+OUTPUT_DIR    = MODEL_DIR
 
 def train_model(print_row_index=0, scaling_factor=1.0):
     print("Starting model training...")
