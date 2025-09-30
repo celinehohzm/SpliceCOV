@@ -40,8 +40,8 @@ chr1	test	exon	1100	1300	.	+	.	gene_id "g1"; transcript_id "t1";
 chr1	test	exon	1400	1600	.	+	.	gene_id "g1"; transcript_id "t1";
 chr1	test	exon	3100	3300	.	-	.	gene_id "g2"; transcript_id "t2";
 chr1	test	exon	3350	3450	.	-	.	gene_id "g2"; transcript_id "t2";
-chr1	test	transcript  3350	3450	.	-	.	gene_id "g2"; transcript_id "t2";
-chr1	test	transcript	3350	3450	.	-	.	gene_id "g2"; transcript_id "t2";
+chr1	test	transcript  3350	3450	.	-	.	transcript_id "CHS.1.1"; gene_id "CHS.1"; gene_name "DDX11L1"
+chr1	test	transcript	3350	3450	.	-	.	 transcript_id "CHS.1.1"; gene_id "CHS.1"; gene_name "DDX11L1"
 EOF
 
 echo "[smoke] Inputs created:"
