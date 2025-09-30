@@ -10,16 +10,13 @@ from sklearn.preprocessing import LabelEncoder
 # Path resolution (Option B)
 # -----------------------
 def _default_model_dir():
-    # Highest priority: explicit env var
     mdir = os.environ.get("SPLICECOV_MODEL_DIR")
     if mdir:
         return os.path.abspath(mdir)
-    # Next: installed helpers dir (launcher sets this)
     hdir = os.environ.get("SPLICECOV_HELPERS_DIR")
     if hdir:
         return os.path.abspath(os.path.join(hdir, "model_output"))
-    # Fallback: next to this file
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), "model_output"))
+    return os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "model_output"))
 
 MODEL_DIR_DEFAULT = _default_model_dir()
 
@@ -27,8 +24,8 @@ MODEL_DIR_DEFAULT = _default_model_dir()
 TRAINING_FILE_BASENAME = "liver.processtiebrush_round2.tsstes.ptf_with_labels.txt"
 TSS_MODEL_BASENAME     = "tss_lightgbm_model.txt"
 CPAS_MODEL_BASENAME    = "cpas_lightgbm_model.txt"
-TSS_ENC_BASENAME       = "tss_label_encoders.pkl"
-CPAS_ENC_BASENAME      = "cpas_label_encoders.pkl"
+TSS_ENC_BASENAME       = "tss_label_encoders.pkl"   # now a version-agnostic snapshot
+CPAS_ENC_BASENAME      = "cpas_label_encoders.pkl"  # now a version-agnostic snapshot
 
 # -----------------------
 # I/O utils
@@ -39,7 +36,6 @@ def _resolve(path_or_name, base):
     return path_or_name if os.path.isabs(path_or_name) else os.path.join(base, path_or_name)
 
 def _safe_best_iter(model):
-    # best_iteration_ is None when early stopping not triggered; LightGBM accepts None
     return getattr(model, "best_iteration", None)
 
 def _save(obj, path):
@@ -64,20 +60,33 @@ COLS_TEST = [
     "value1", "value2", "value3", "value4", "value5", "value6", "value7", "value8"
 ]
 
-def _prep_X(df, encoders):
+def _prep_X(df, enc):
+    """
+    enc can be either:
+      - training-time dict with {'value3_max': float, 'le_value8': LabelEncoder}
+      - snapshot dict with {'value3_max': float, 'value8_classes': list[str]}
+    """
     X = df[FEATURES].copy()
-    # Normalize value3 by max from training
-    vmax = encoders.get("value3_max", 1.0) or 1.0
-    X["value3_norm"] = (X["value3"] / vmax).fillna(0.0)
+
+    vmax = enc.get("value3_max", 1.0)
+    if vmax in (None, 0) or (isinstance(vmax, float) and np.isnan(vmax)):
+        vmax = 1.0
+    X["value3_norm"] = (X["value3"] / float(vmax)).fillna(0.0)
     X.drop(columns=["value3"], inplace=True)
-    # Encode categorical value8
-    le = encoders["le_value8"]
-    X["value8_encoded"] = le.transform(X["value8"].astype(str))
+
+    if "le_value8" in enc:
+        le = enc["le_value8"]
+    else:
+        classes = enc.get("value8_classes", [])
+        le = LabelEncoder()
+        # ensure string dtype for stable mapping
+        le.classes_ = np.array(list(map(str, classes)), dtype=str)
+    X["value8_encoded"] = le.transform(df["value8"].astype(str))
     X.drop(columns=["value8"], inplace=True)
+
     return X
 
 def _fit_encoders(df):
-    # compute encoders/statistics on TRAIN subset
     vmax = df["value3"].max()
     if pd.isna(vmax) or vmax == 0:
         vmax = 1.0
@@ -94,26 +103,30 @@ def _train_one(df_full, row_type, model_path, enc_path, print_row_index=0):
         print(f"[train] No rows for {row_type}; skipping.")
         return None
 
-    # Basic class check
-    pos = (df["label"] == 1).sum()
-    neg = (df["label"] == 0).sum()
+    pos = int((df["label"] == 1).sum())
+    neg = int((df["label"] == 0).sum())
     if pos == 0 or neg == 0:
         print(f"[train] Not enough class diversity for {row_type} (pos={pos}, neg={neg}); skipping.")
         return None
 
-    # Balance via undersampling (cap negatives at positives)
+    # Balance via undersampling
     if neg > pos:
         df_neg = df[df["label"] == 0].sample(n=pos, random_state=42)
         df_pos = df[df["label"] == 1]
         df = pd.concat([df_pos, df_neg]).sample(frac=1.0, random_state=42).reset_index(drop=True)
 
     # Encoders/statistics
-    enc = _fit_encoders(df)
-    _save(enc, enc_path)
+    enc_train = _fit_encoders(df)
+    # Save version-agnostic snapshot
+    enc_snapshot = {
+        "value3_max": enc_train["value3_max"],
+        "value8_classes": enc_train["le_value8"].classes_.tolist(),
+    }
+    _save(enc_snapshot, enc_path)
     print(f"[train] saved encoders -> {enc_path}")
 
-    # Features/labels
-    X = _prep_X(df, enc)
+    # Features/labels using live encoders for this training session
+    X = _prep_X(df, enc_train)
     y = df["label"].astype(int)
 
     if 0 <= print_row_index < len(X):
@@ -123,7 +136,6 @@ def _train_one(df_full, row_type, model_path, enc_path, print_row_index=0):
         X, y, test_size=0.2, random_state=42, stratify=y
     )
 
-    # LightGBM params
     params = {
         "objective": "binary",
         "metric": "binary_logloss",
@@ -163,7 +175,7 @@ def _load_model_and_enc(model_path, enc_path):
     if not os.path.exists(model_path) or not os.path.exists(enc_path):
         return None, None
     model = lgb.Booster(model_file=model_path)
-    enc = _load(enc_path)
+    enc = _load(enc_path)  # snapshot dict
     return model, enc
 
 def score(testing_path, output_path, tss_model, cpas_model, tss_enc, cpas_enc, threshold=0.4):
@@ -176,14 +188,13 @@ def score(testing_path, output_path, tss_model, cpas_model, tss_enc, cpas_enc, t
         raise ValueError(f"Unexpected testing cols: {df.shape[1]} (expected {len(COLS_TEST)})")
     df.columns = COLS_TEST
 
-    # Prepare default outputs
     df["confidence_score"] = np.nan
     df["predicted_label"] = np.nan
 
     for rt, mpath, epath in (("TSS", tss_model, tss_enc), ("CPAS", cpas_model, cpas_enc)):
         print(f"[score] {rt}: loading model/encoders")
-        model, enc = _load_model_and_enc(mpath, epath)
-        if model is None or enc is None:
+        model, enc_snapshot = _load_model_and_enc(mpath, epath)
+        if model is None or enc_snapshot is None:
             print(f"[score] {rt}: model or encoders not found; skipping.")
             continue
 
@@ -192,14 +203,13 @@ def score(testing_path, output_path, tss_model, cpas_model, tss_enc, cpas_enc, t
             print(f"[score] {rt}: no rows; skipping.")
             continue
 
-        X = _prep_X(df.loc[sub_idx], enc)
+        X = _prep_X(df.loc[sub_idx], enc_snapshot)
         y_prob = np.clip(model.predict(X, num_iteration=_safe_best_iter(model)), 0, 1)
-        y_hat = (y_prob >= float(threshold)).astype(int)
+        y_hat  = (y_prob >= float(threshold)).astype(int)
 
         df.loc[sub_idx, "confidence_score"] = y_prob
         df.loc[sub_idx, "predicted_label"]  = y_hat
 
-    # If any rows still NaN (no model), default to 0
     df["confidence_score"] = df["confidence_score"].fillna(0.0)
     df["predicted_label"]  = df["predicted_label"].fillna(0).astype(int)
 
