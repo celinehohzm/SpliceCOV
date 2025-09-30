@@ -36,12 +36,12 @@ EOF
 
 # 5) Tiny GTF (optional; two simple exons)
 cat > "$TMP/annotation.gtf" <<'EOF'
-chr1	test	source	exon	1100	1300	.	+	.	gene_id "g1"; transcript_id "t1";
-chr1	test	source	exon	1400	1600	.	+	.	gene_id "g1"; transcript_id "t1";
-chr1	test	source	exon	3100	3300	.	-	.	gene_id "g2"; transcript_id "t2";
-chr1	test	source	exon	3350	3450	.	-	.	gene_id "g2"; transcript_id "t2";
-chr1	test	source	transcript  3350	3450	.	-	.	gene_id "g2"; transcript_id "t2";
-chr1	test	source	transcript	3350	3450	.	-	.	gene_id "g2"; transcript_id "t2";
+chr1	test	exon	1100	1300	.	+	.	gene_id "g1"; transcript_id "t1";
+chr1	test	exon	1400	1600	.	+	.	gene_id "g1"; transcript_id "t1";
+chr1	test	exon	3100	3300	.	-	.	gene_id "g2"; transcript_id "t2";
+chr1	test	exon	3350	3450	.	-	.	gene_id "g2"; transcript_id "t2";
+chr1	test	transcript  3350	3450	.	-	.	gene_id "g2"; transcript_id "t2";
+chr1	test	transcript	3350	3450	.	-	.	gene_id "g2"; transcript_id "t2";
 EOF
 
 echo "[smoke] Inputs created:"
