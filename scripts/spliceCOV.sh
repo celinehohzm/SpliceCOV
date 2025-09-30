@@ -240,7 +240,6 @@ fi
 if [ "$start_step" -le 4 ]; then
   log "Step 4: LightGBM scoring (junctions)..."
   python3 "${helpers_dir}/LightGBM_no_normscale.py" \
-    --model-dir "$MODEL_DIR" \
     -i "$processed_junc_bundle" \
     -o "$processed_junc_bundle_w_scores" \
     ${score_flags[@]+"${score_flags[@]}"}
@@ -301,7 +300,6 @@ fi
 if [ "$start_step" -le 12 ]; then
   log "Step 12: LightGBM scoring (TSSTES)..."
   python3 "${helpers_dir}/LightGBM_tss.py" \
-    --model-dir "$MODEL_DIR" \
     -i "$round2_processed_bundles_w_metrics_tsstes_ptf" \
     -o "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores" \
     ${score_flags[@]+"${score_flags[@]}"}
