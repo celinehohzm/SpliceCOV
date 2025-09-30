@@ -9,7 +9,7 @@ PKGNAME := splicecov
 # Derive version (fallback if git not available)
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo 0.0.0)
 
-# Entrypoint inside repo
+# A default guess; we’ll normalize at install time.
 ENTRY   := scripts/splicecov.sh
 
 # Directories to ship into SHAREDIR
@@ -49,26 +49,46 @@ install: check-deps python-deps print-locations
 
 	@echo "Installing launcher to $(BINDIR)/$(PKGNAME)"
 	@{ \
+	  # Figure out which entry script exists in the source tree
+	  printf 'ENTRY_SRC='; \
+	  if [ -f scripts/splicecov.sh ]; then \
+	    printf '%s\n' 'scripts/splicecov.sh'; \
+	  elif [ -f scripts/spliceCOV.sh ]; then \
+	    printf '%s\n' 'scripts/spliceCOV.sh'; \
+	  else \
+	    printf '%s\n' 'scripts/splicecov.sh'; \
+	  fi; \
+	} > .entry.tmp
+	@ENTRY_SRC="$$(cat .entry.tmp)"; rm -f .entry.tmp; \
+	{ \
 	  printf '%s\n' '#!/usr/bin/env bash'; \
 	  printf '%s\n' 'set -euo pipefail'; \
 	  printf 'SHAREDIR=%s\n' '$(SHAREDIR)'; \
-	  printf 'ENTRY=%s\n' '$(ENTRY)'; \
+	  printf 'ENTRY=%s\n' "$$ENTRY_SRC"; \
 	  printf 'BIN_LOCAL_ENTRY=%s\n' '$(BINDIR)/.splicecov_entry.sh'; \
 	  printf '%s\n' ''; \
 	  printf '%s\n' '# Export helpers dir for Python scripts (Option B path resolution)'; \
 	  printf '%s\n' 'export SPLICECOV_HELPERS_DIR="${SPLICECOV_HELPERS_DIR:-$$SHAREDIR/scripts}"'; \
 	  printf '%s\n' ''; \
-	  printf '%s\n' '# 1) Try baked-in path first'; \
+	  printf '%s\n' '# Normalize ENTRY if baked name does not exist (case swap support)'; \
+	  printf '%s\n' 'if [[ ! -x "$$SHAREDIR/$$ENTRY" ]]; then'; \
+	  printf '%s\n' '  for alt in "scripts/splicecov.sh" "scripts/spliceCOV.sh"; do'; \
+	  printf '%s\n' '    if [[ -x "$$SHAREDIR/$$alt" ]]; then ENTRY="$$alt"; break; fi'; \
+	  printf '%s\n' '  done'; \
+	  printf '%s\n' 'fi'; \
+	  printf '%s\n' ''; \
+	  printf '%s\n' '# 1) Try baked/normalized share path'; \
 	  printf '%s\n' 'if [[ -x "$$SHAREDIR/$$ENTRY" ]]; then'; \
 	  printf '%s\n' '  exec "$$SHAREDIR/$$ENTRY" "$$@"'; \
 	  printf '%s\n' 'fi'; \
 	  printf '%s\n' ''; \
-	  printf '%s\n' '# 2) Fallback: derive share dir from launcher location'; \
+	  printf '%s\n' '# 2) Fallbacks relative to launcher'; \
 	  printf '%s\n' 'LAUNCHER_DIR="$$(cd "$$(dirname "$${BASH_SOURCE[0]}")" && pwd)"'; \
 	  printf '%s\n' 'CANDIDATES=('; \
 	  printf '%s\n' '  "$$LAUNCHER_DIR/../share/splicecov/$$ENTRY"'; \
 	  printf '%s\n' '  "$$LAUNCHER_DIR/../../share/splicecov/$$ENTRY"'; \
 	  printf '%s\n' '  "$$LAUNCHER_DIR/../share/splicecov/scripts/splicecov.sh"'; \
+	  printf '%s\n' '  "$$LAUNCHER_DIR/../share/splicecov/scripts/spliceCOV.sh"'; \
 	  printf '%s\n' ')'; \
 	  printf '%s\n' 'for cand in "$${CANDIDATES[@]}"; do'; \
 	  printf '%s\n' '  if [[ -x "$$cand" ]]; then'; \
@@ -77,12 +97,14 @@ install: check-deps python-deps print-locations
 	  printf '%s\n' '  fi'; \
 	  printf '%s\n' 'done'; \
 	  printf '%s\n' ''; \
-	  printf '%s\n' '# 3) Dev checkout relative paths'; \
+	  printf '%s\n' '# 3) Dev checkout fallback'; \
 	  printf '%s\n' 'SCRIPT_DIR_GUESS="$$(cd "$$LAUNCHER_DIR/../scripts" 2>/dev/null && pwd || true)"'; \
-	  printf '%s\n' 'if [[ -n "$$SCRIPT_DIR_GUESS" && -x "$$SCRIPT_DIR_GUESS/splicecov.sh" ]]; then'; \
-	  printf '%s\n' '  export SPLICECOV_HELPERS_DIR="$$SCRIPT_DIR_GUESS"'; \
-	  printf '%s\n' '  exec "$$SCRIPT_DIR_GUESS/splicecov.sh" "$$@"'; \
-	  printf '%s\n' 'fi'; \
+	  printf '%s\n' 'for alt in "splicecov.sh" "spliceCOV.sh"; do'; \
+	  printf '%s\n' '  if [[ -n "$$SCRIPT_DIR_GUESS" && -x "$$SCRIPT_DIR_GUESS/$$alt" ]]; then'; \
+	  printf '%s\n' '    export SPLICECOV_HELPERS_DIR="$$SCRIPT_DIR_GUESS"'; \
+	  printf '%s\n' '    exec "$$SCRIPT_DIR_GUESS/$$alt" "$$@"'; \
+	  printf '%s\n' '  fi'; \
+	  printf '%s\n' 'done'; \
 	  printf '%s\n' ''; \
 	  printf '%s\n' '# 4) Last resort: local copy beside the launcher'; \
 	  printf '%s\n' 'if [[ -x "$$BIN_LOCAL_ENTRY" ]]; then'; \
@@ -100,7 +122,16 @@ install: check-deps python-deps print-locations
 	@chmod +x "$(BINDIR)/$(PKGNAME)"
 
 	@echo "Installing local fallback entry: $(BINDIR)/.splicecov_entry.sh"
-	@install -Dm755 "scripts/splicecov.sh" "$(BINDIR)/.splicecov_entry.sh"
+	@{ \
+	  if [ -f scripts/splicecov.sh ]; then \
+	    install -Dm755 "scripts/splicecov.sh" "$(BINDIR)/.splicecov_entry.sh"; \
+	  elif [ -f scripts/spliceCOV.sh ]; then \
+	    install -Dm755 "scripts/spliceCOV.sh" "$(BINDIR)/.splicecov_entry.sh"; \
+	  else \
+	    echo "ERROR: neither scripts/splicecov.sh nor scripts/spliceCOV.sh exists." >&2; \
+	    exit 1; \
+	  fi; \
+	}
 
 uninstall:
 	@echo "Removing launcher: $(BINDIR)/$(PKGNAME)"
