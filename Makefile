@@ -43,16 +43,19 @@ install: check-deps python-deps print-locations
 	@echo "Marking scripts executable"
 	@find "$(SHAREDIR)/scripts" -type f -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
 	@find "$(SHAREDIR)/bin"     -type f -perm -u=x     -exec chmod +x {} \; 2>/dev/null || true
+
 	@echo "→ Installed files under $(SHAREDIR):"
 	@find "$(SHAREDIR)" -maxdepth 2 -type f -print | sed 's/^/   /'
+
 	@echo "Installing launcher to $(BINDIR)/$(PKGNAME)"
 	@{ \
 	  printf '%s\n' '#!/usr/bin/env bash'; \
 	  printf '%s\n' 'set -euo pipefail'; \
 	  printf 'SHAREDIR=%s\n' '$(SHAREDIR)'; \
 	  printf 'ENTRY=%s\n' '$(ENTRY)'; \
+	  printf 'BIN_LOCAL_ENTRY=%s\n' '$(BINDIR)/.splicecov_entry.sh'; \
 	  printf '%s\n' ''; \
-	  printf '%s\n' '# Export helpers dir for Python scripts (used by Option B path resolution)'; \
+	  printf '%s\n' '# Export helpers dir for Python scripts (Option B path resolution)'; \
 	  printf '%s\n' 'export SPLICECOV_HELPERS_DIR="${SPLICECOV_HELPERS_DIR:-$$SHAREDIR/scripts}"'; \
 	  printf '%s\n' ''; \
 	  printf '%s\n' '# 1) Try baked-in path first'; \
@@ -69,30 +72,41 @@ install: check-deps python-deps print-locations
 	  printf '%s\n' ')'; \
 	  printf '%s\n' 'for cand in "$${CANDIDATES[@]}"; do'; \
 	  printf '%s\n' '  if [[ -x "$$cand" ]]; then'; \
-	  printf '%s\n' '    # ensure helpers point to the scripts dir beside the entrypoint'; \
 	  printf '%s\n' '    export SPLICECOV_HELPERS_DIR="$$(cd "$$(dirname "$$cand")" && pwd)";'; \
 	  printf '%s\n' '    exec "$$cand" "$$@"'; \
 	  printf '%s\n' '  fi'; \
 	  printf '%s\n' 'done'; \
 	  printf '%s\n' ''; \
-	  printf '%s\n' '# 3) Last chance: dev checkout relative paths'; \
+	  printf '%s\n' '# 3) Dev checkout relative paths'; \
 	  printf '%s\n' 'SCRIPT_DIR_GUESS="$$(cd "$$LAUNCHER_DIR/../scripts" 2>/dev/null && pwd || true)"'; \
 	  printf '%s\n' 'if [[ -n "$$SCRIPT_DIR_GUESS" && -x "$$SCRIPT_DIR_GUESS/splicecov.sh" ]]; then'; \
 	  printf '%s\n' '  export SPLICECOV_HELPERS_DIR="$$SCRIPT_DIR_GUESS"'; \
 	  printf '%s\n' '  exec "$$SCRIPT_DIR_GUESS/splicecov.sh" "$$@"'; \
 	  printf '%s\n' 'fi'; \
 	  printf '%s\n' ''; \
+	  printf '%s\n' '# 4) Last resort: local copy beside the launcher'; \
+	  printf '%s\n' 'if [[ -x "$$BIN_LOCAL_ENTRY" ]]; then'; \
+	  printf '%s\n' '  export SPLICECOV_HELPERS_DIR="$${SPLICECOV_HELPERS_DIR:-$$SHAREDIR/scripts}"'; \
+	  printf '%s\n' '  exec "$$BIN_LOCAL_ENTRY" "$$@"'; \
+	  printf '%s\n' 'fi'; \
+	  printf '%s\n' ''; \
 	  printf '%s\n' 'echo "Error: cannot find SpliceCOV entrypoint ($$ENTRY)." >&2'; \
 	  printf '%s\n' 'echo "Tried:" >&2'; \
 	  printf '%s\n' 'echo "  - $$SHAREDIR/$$ENTRY" >&2'; \
 	  printf '%s\n' 'for cand in "$${CANDIDATES[@]}"; do echo "  - $$cand" >&2; done'; \
+	  printf '%s\n' 'echo "  - $$BIN_LOCAL_ENTRY" >&2'; \
 	  printf '%s\n' 'exit 1'; \
 	} > "$(BINDIR)/$(PKGNAME)"
 	@chmod +x "$(BINDIR)/$(PKGNAME)"
 
+	@echo "Installing local fallback entry: $(BINDIR)/.splicecov_entry.sh"
+	@install -Dm755 "scripts/splicecov.sh" "$(BINDIR)/.splicecov_entry.sh"
+
 uninstall:
 	@echo "Removing launcher: $(BINDIR)/$(PKGNAME)"
 	@rm -f "$(BINDIR)/$(PKGNAME)" || true
+	@echo "Removing local fallback entry: $(BINDIR)/.splicecov_entry.sh"
+	@rm -f "$(BINDIR)/.splicecov_entry.sh" || true
 	@echo "Removing shared files: $(SHAREDIR)"
 	@rm -rf "$(SHAREDIR)" || true
 	@echo "Uninstalled $(PKGNAME)"
