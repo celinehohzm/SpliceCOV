@@ -61,7 +61,7 @@ install: check-deps python-deps print-locations
 	  printf '%s\n' 'fi'; \
 	  printf '%s\n' ''; \
 	  printf '%s\n' '# 2) Fallback: derive share dir from launcher location'; \
-	  printf '%s\n' 'LAUNCHER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"'; \
+	  printf '%s\n' 'LAUNCHER_DIR="$$(cd "$$(dirname "$${BASH_SOURCE[0]}")" && pwd)"'; \
 	  printf '%s\n' 'CANDIDATES=('; \
 	  printf '%s\n' '  "$$LAUNCHER_DIR/../share/splicecov/$$ENTRY"'; \
 	  printf '%s\n' '  "$$LAUNCHER_DIR/../../share/splicecov/$$ENTRY"'; \
@@ -69,13 +69,16 @@ install: check-deps python-deps print-locations
 	  printf '%s\n' ')'; \
 	  printf '%s\n' 'for cand in "$${CANDIDATES[@]}"; do'; \
 	  printf '%s\n' '  if [[ -x "$$cand" ]]; then'; \
+	  printf '%s\n' '    # ensure helpers point to the scripts dir beside the entrypoint'; \
+	  printf '%s\n' '    export SPLICECOV_HELPERS_DIR="$$(cd "$$(dirname "$$cand")" && pwd)";'; \
 	  printf '%s\n' '    exec "$$cand" "$$@"'; \
 	  printf '%s\n' '  fi'; \
 	  printf '%s\n' 'done'; \
 	  printf '%s\n' ''; \
 	  printf '%s\n' '# 3) Last chance: dev checkout relative paths'; \
-	  printf '%s\n' 'SCRIPT_DIR_GUESS="$(cd "$$LAUNCHER_DIR/../scripts" 2>/dev/null && pwd || true)"'; \
+	  printf '%s\n' 'SCRIPT_DIR_GUESS="$$(cd "$$LAUNCHER_DIR/../scripts" 2>/dev/null && pwd || true)"'; \
 	  printf '%s\n' 'if [[ -n "$$SCRIPT_DIR_GUESS" && -x "$$SCRIPT_DIR_GUESS/splicecov.sh" ]]; then'; \
+	  printf '%s\n' '  export SPLICECOV_HELPERS_DIR="$$SCRIPT_DIR_GUESS"'; \
 	  printf '%s\n' '  exec "$$SCRIPT_DIR_GUESS/splicecov.sh" "$$@"'; \
 	  printf '%s\n' 'fi'; \
 	  printf '%s\n' ''; \
