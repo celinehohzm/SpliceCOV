@@ -11,10 +11,10 @@ import argparse
 import sys
 
 # Paths to the saved model and encoders
-TRAINING_FILE = './model_output/spleen.process_tiebrush.processed_round1.bundles_with_labels.txt'
-MODEL_FILE = './model_output/0606_spleen_no_normscale_lightgbm_model.txt'
-ENCODERS_FILE = './model_output/0606_spleen_no_normscale_label_encoders.pkl'
-FEATURE_IMPORTANCES_FILE = './model_output/0606_spleen_no_normscale_norm_feature_importances.csv'
+TRAINING_FILE = 'model_output/spleen.process_tiebrush.processed_round1.bundles_with_labels.txt'
+MODEL_FILE = 'model_output/0606_spleen_no_normscale_lightgbm_model.txt'
+ENCODERS_FILE = 'model_output/0606_spleen_no_normscale_label_encoders.pkl'
+FEATURE_IMPORTANCES_FILE = 'model_output/0606_spleen_no_normscale_norm_feature_importances.csv'
 OUTPUT_DIR = './model_output/'
 
 def train_model(print_row_index=0, scaling_factor=1.0):
