@@ -35,6 +35,7 @@ install: check-deps python-deps print-locations
 	    if command -v rsync >/dev/null 2>&1; then \
 	      rsync -a --delete "$$d" "$(SHAREDIR)/"; \
 	    else \
+	      rm -rf "$(SHAREDIR)/$${d##*/}" 2>/dev/null || true; \
 	      cp -R "$$d" "$(SHAREDIR)/"; \
 	    fi; \
 	  fi; \
@@ -42,21 +43,47 @@ install: check-deps python-deps print-locations
 	@echo "Marking scripts executable"
 	@find "$(SHAREDIR)/scripts" -type f -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
 	@find "$(SHAREDIR)/bin"     -type f -perm -u=x     -exec chmod +x {} \; 2>/dev/null || true
+	@echo "→ Installed files under $(SHAREDIR):"
+	@find "$(SHAREDIR)" -maxdepth 2 -type f -print | sed 's/^/   /'
 	@echo "Installing launcher to $(BINDIR)/$(PKGNAME)"
 	@{ \
 	  printf '%s\n' '#!/usr/bin/env bash'; \
 	  printf '%s\n' 'set -euo pipefail'; \
 	  printf 'SHAREDIR=%s\n' '$(SHAREDIR)'; \
 	  printf 'ENTRY=%s\n' '$(ENTRY)'; \
-	  printf '%s\n' 'export SPLICECOV_HELPERS_DIR="${SPLICECOV_HELPERS_DIR:-$SHAREDIR/scripts}"'; \
+	  printf '%s\n' ''; \
+	  printf '%s\n' '# Export helpers dir for Python scripts (used by Option B path resolution)'; \
+	  printf '%s\n' 'export SPLICECOV_HELPERS_DIR="${SPLICECOV_HELPERS_DIR:-$$SHAREDIR/scripts}"'; \
+	  printf '%s\n' ''; \
+	  printf '%s\n' '# 1) Try baked-in path first'; \
 	  printf '%s\n' 'if [[ -x "$$SHAREDIR/$$ENTRY" ]]; then'; \
 	  printf '%s\n' '  exec "$$SHAREDIR/$$ENTRY" "$$@"'; \
-	  printf '%s\n' 'elif [[ -x "$$ENTRY" ]]; then'; \
-	  printf '%s\n' '  exec "$$ENTRY" "$$@"'; \
-	  printf '%s\n' 'else'; \
-	  printf '%s\n' '  echo "Error: cannot find SpliceCOV entrypoint ($$ENTRY)." >&2'; \
-	  printf '%s\n' '  exit 1'; \
 	  printf '%s\n' 'fi'; \
+	  printf '%s\n' ''; \
+	  printf '%s\n' '# 2) Fallback: derive share dir from launcher location'; \
+	  printf '%s\n' 'LAUNCHER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"'; \
+	  printf '%s\n' 'CANDIDATES=('; \
+	  printf '%s\n' '  "$$LAUNCHER_DIR/../share/splicecov/$$ENTRY"'; \
+	  printf '%s\n' '  "$$LAUNCHER_DIR/../../share/splicecov/$$ENTRY"'; \
+	  printf '%s\n' '  "$$LAUNCHER_DIR/../share/splicecov/scripts/splicecov.sh"'; \
+	  printf '%s\n' ')'; \
+	  printf '%s\n' 'for cand in "$${CANDIDATES[@]}"; do'; \
+	  printf '%s\n' '  if [[ -x "$$cand" ]]; then'; \
+	  printf '%s\n' '    exec "$$cand" "$$@"'; \
+	  printf '%s\n' '  fi'; \
+	  printf '%s\n' 'done'; \
+	  printf '%s\n' ''; \
+	  printf '%s\n' '# 3) Last chance: dev checkout relative paths'; \
+	  printf '%s\n' 'SCRIPT_DIR_GUESS="$(cd "$$LAUNCHER_DIR/../scripts" 2>/dev/null && pwd || true)"'; \
+	  printf '%s\n' 'if [[ -n "$$SCRIPT_DIR_GUESS" && -x "$$SCRIPT_DIR_GUESS/splicecov.sh" ]]; then'; \
+	  printf '%s\n' '  exec "$$SCRIPT_DIR_GUESS/splicecov.sh" "$$@"'; \
+	  printf '%s\n' 'fi'; \
+	  printf '%s\n' ''; \
+	  printf '%s\n' 'echo "Error: cannot find SpliceCOV entrypoint ($$ENTRY)." >&2'; \
+	  printf '%s\n' 'echo "Tried:" >&2'; \
+	  printf '%s\n' 'echo "  - $$SHAREDIR/$$ENTRY" >&2'; \
+	  printf '%s\n' 'for cand in "$${CANDIDATES[@]}"; do echo "  - $$cand" >&2; done'; \
+	  printf '%s\n' 'exit 1'; \
 	} > "$(BINDIR)/$(PKGNAME)"
 	@chmod +x "$(BINDIR)/$(PKGNAME)"
 
