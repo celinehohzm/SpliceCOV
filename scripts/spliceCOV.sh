@@ -250,14 +250,25 @@ if [ "$start_step" -le 5 ]; then
   awk '$NF==1' "$processed_junc_bundle_w_scores" > "$processed_junc_bundle_w_scores_scpositive"
 fi
 
-# Step 6 depends on annotation
 if $anno_present && [ "$start_step" -le 6 ]; then
   log "Step 6: Evaluation (junctions vs annotation splice sites)..."
-  python3 "${helpers_dir}/evaluate_ptf_new.py" \
-    "$processed_junc_bundle_w_scores_scpositive" "$tiebrush_uniquess_in_annotation"
+  if [[ -s "$processed_junc_bundle_w_scores_scpositive" && -s "$tiebrush_uniquess_in_annotation" ]]; then
+    set +e
+    python "${helpers_dir}/evaluate_ptf_new.py" \
+      "$processed_junc_bundle_w_scores_scpositive" \
+      "$tiebrush_uniquess_in_annotation"
+    rc=$?
+    set -e
+    if [[ $rc -ne 0 ]]; then
+      log "Step 6: WARNING: evaluate_ptf_new exited with $rc (likely empty inputs); continuing."
+    fi
+  else
+    log "Step 6: Skipped (no positives or no annotation splice sites)."
+  fi
 elif ! $anno_present && [ "$start_step" -le 6 ]; then
   log "Step 6: Skipped (no annotation provided)."
 fi
+
 
 if [ "$start_step" -le 7 ]; then
   log "Step 7: Emit PTF (junctions)..."
@@ -305,6 +316,18 @@ if [ "$start_step" -le 12 ]; then
     ${score_flags[@]+"${score_flags[@]}"}
 fi
 
+# After Step 12
+log "debug: files snapshot"
+ls -lh "$outdir" || true
+for f in \
+  "$processed_junc_bundle_w_scores" \
+  "$processed_junc_bundle_w_scores_scpositive" \
+  "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores" \
+  "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive" ; do
+  [[ -e "$f" ]] && { wc -l "$f" 2>/dev/null || true; } || log "debug: missing $f"
+done
+
+
 if [ "$start_step" -le 13 ]; then
   log "Step 13: Filter TSSTES score-positive..."
   awk '$NF==1.0' \
@@ -314,13 +337,28 @@ fi
 
 if $anno_present && [ "$start_step" -le 14 ]; then
   log "Step 14: Final TSSTES evaluation (annotation provided)..."
-  python3 "${helpers_dir}/evaluate_TSSTES_new.py" \
-    "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive" \
-    "$tiebrush_unique_tsstes_in_annotation" \
-    > "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive_eval"
+  if [[ -s "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive" ]]; then
+    if [[ -s "$tiebrush_unique_tsstes_in_annotation" ]]; then
+      set +e
+      python "${helpers_dir}/evaluate_TSSTES_new.py" \
+        "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive" \
+        "$tiebrush_unique_tsstes_in_annotation" \
+        > "$outdir/${base_name}.r2.tsstes.pos.eval.txt"
+      rc=$?
+      set -e
+      if [[ $rc -ne 0 ]]; then
+        log "Step 14: WARNING: evaluate_TSSTES_new exited with $rc; continuing."
+      fi
+    else
+      log "Step 14: Skipped (no annotation TSSTES reference rows)."
+    fi
+  else
+    log "Step 14: Skipped (no TSSTES score-positive rows)."
+  fi
 elif ! $anno_present && [ "$start_step" -le 14 ]; then
   log "Step 14: Skipped (no annotation provided)."
 fi
+
 
 if [ "$start_step" -le 15 ]; then
   log "Step 15: Combine ptfs..."
