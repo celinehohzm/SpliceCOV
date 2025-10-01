@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-14]  # macOS 14 runners are arm64
+        os: [ubuntu-latest, macos-14]   # macOS 14 runners are arm64
         python-version: ['3.10', '3.11', '3.12']
 
     env:
@@ -27,22 +27,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # macOS: libomp for LightGBM
       - name: Install libomp (macOS)
         if: startsWith(matrix.os, 'macos')
         run: |
           brew install libomp
-          brew --prefix libomp
-          ls -l "$(brew --prefix libomp)/lib"
-
-      - name: Export DYLD_LIBRARY_PATH for libomp (macOS)
-        if: startsWith(matrix.os, 'macos')
-        run: |
           echo "DYLD_LIBRARY_PATH=$(brew --prefix libomp)/lib:${DYLD_LIBRARY_PATH:-}" >> $GITHUB_ENV
-
 
       - name: pip install requirements
         if: hashFiles('requirements.txt') != ''
-        run: python -m pip install --upgrade pip && pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
 
       # UCSC tools (Linux)
       - name: Install bigWigToBedGraph (Linux)
@@ -100,7 +96,9 @@ jobs:
     runs-on: windows-latest
     strategy:
       fail-fast: false
-
+    defaults:
+      run:
+        shell: msys2 {0}
     env:
       MSYS2_PATH_TYPE: inherit
       PREFIX: ${{ github.workspace }}/.local
@@ -109,7 +107,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: msys2/setup-msys2@v2
+      - name: Set up MSYS2
+        uses: msys2/setup-msys2@v2
         with:
           update: true
           install: >-
@@ -121,43 +120,42 @@ jobs:
             curl
             wget
             unzip
+            coreutils
+            findutils
             python
+            python-pip
 
-      - name: Install Python requirements (MSYS2)
-        shell: msys2 {0}
+      - name: Show Python & ensure pip
         run: |
           python --version
+          python -m pip --version || true
+          python -m pip install --upgrade pip setuptools wheel
+
+      - name: Install Python requirements (MSYS2)
+        run: |
           if [ -f requirements.txt ]; then
-            python -m pip install --upgrade pip
-            pip install -r requirements.txt || true
+            python -m pip install -r requirements.txt || true
           fi
 
       - name: Install UCSC tools (Windows .exe)
-        shell: msys2 {0}
         run: |
           mkdir -p "$BIN_DIR"
           curl -fsSL "https://hgdownload.cse.ucsc.edu/admin/exe/windows.x86_64/bigWigToBedGraph.exe" -o "$BIN_DIR/bigWigToBedGraph.exe"
           curl -fsSL "https://hgdownload.cse.ucsc.edu/admin/exe/windows.x86_64/bedGraphToBigWig.exe" -o "$BIN_DIR/bedGraphToBigWig.exe"
           chmod +x "$BIN_DIR/bigWigToBedGraph.exe" "$BIN_DIR/bedGraphToBigWig.exe"
-          echo "export PATH=\"$BIN_DIR:\$PATH\"" >> ~/.bash_profile
-          export PATH="$BIN_DIR:$PATH"
-          "$BIN_DIR/bigWigToBedGraph.exe" 2>/dev/null | head -n1 || true
-          "$BIN_DIR/bedGraphToBigWig.exe" 2>/dev/null | head -n1 || true
+          echo "$BIN_DIR" >> "$GITHUB_PATH"
+          bigWigToBedGraph.exe 2>/dev/null | head -n1 || true
+          bedGraphToBigWig.exe 2>/dev/null | head -n1 || true
 
       - name: Build & install (make release via MSYS2)
-        shell: msys2 {0}
-        env:
-          PATH: ${{ env.BIN_DIR }}:/usr/bin:/bin:/mingw64/bin:/mingw32/bin:$PATH
         run: |
           make PREFIX="$PREFIX" release
           ls -l "$BIN_DIR"
           "$BIN_DIR/splicecov" -h || true
 
       - name: Run mini integration smoke (MSYS2)
-        shell: msys2 {0}
         env:
           BIN_DIR: ${{ env.BIN_DIR }}
           BEDGRAPH_TO_BIGWIG: bedGraphToBigWig.exe
-          PATH: ${{ env.BIN_DIR }}:/usr/bin:/bin:/mingw64/bin:/mingw32/bin:$PATH
         run: |
           bash test/smoke.sh
