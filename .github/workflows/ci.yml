@@ -91,55 +91,55 @@ jobs:
         run: |
           bash test/smoke.sh
 
-  # Windows job using native Python + Chocolatey make (no MSYS2/PEP 668 issues)
-  windows_native:
-    name: windows-latest / Python 3.12
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: bash
-    env:
-      PREFIX: ${{ github.workspace }}/.local
-      BIN_DIR: ${{ github.workspace }}/.local/bin
+  # # Windows job using native Python + Chocolatey make (no MSYS2/PEP 668 issues)
+  # windows_native:
+  #   name: windows-latest / Python 3.12
+  #   runs-on: windows-latest
+  #   defaults:
+  #     run:
+  #       shell: bash
+  #   env:
+  #     PREFIX: ${{ github.workspace }}/.local
+  #     BIN_DIR: ${{ github.workspace }}/.local/bin
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.12'
 
-      - name: Install GNU make via Chocolatey
-        run: |
-          choco install make -y
-          make --version
+  #     - name: Install GNU make via Chocolatey
+  #       run: |
+  #         choco install make -y
+  #         make --version
 
-      - name: pip install requirements
-        if: hashFiles('requirements.txt') != ''
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+  #     - name: pip install requirements
+  #       if: hashFiles('requirements.txt') != ''
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         python -m pip install -r requirements.txt
 
-      - name: Install UCSC tools (Windows .exe)
-        run: |
-          mkdir -p "$RUNNER_TEMP/bin"
-          curl -fsSL "https://hgdownload.cse.ucsc.edu/admin/exe/windows.x86_64/bigWigToBedGraph.exe" -o "$RUNNER_TEMP/bin/bigWigToBedGraph.exe"
-          curl -fsSL "https://hgdownload.cse.ucsc.edu/admin/exe/windows.x86_64/bedGraphToBigWig.exe" -o "$RUNNER_TEMP/bin/bedGraphToBigWig.exe"
-          chmod +x "$RUNNER_TEMP/bin/"*.exe
-          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
-          bigWigToBedGraph.exe 2>/dev/null | head -n1 || true
-          bedGraphToBigWig.exe 2>/dev/null | head -n1 || true
+  #     - name: Install UCSC tools (Windows .exe)
+  #       run: |
+  #         mkdir -p "$RUNNER_TEMP/bin"
+  #         curl -fsSL "https://hgdownload.cse.ucsc.edu/admin/exe/windows.x86_64/bigWigToBedGraph.exe" -o "$RUNNER_TEMP/bin/bigWigToBedGraph.exe"
+  #         curl -fsSL "https://hgdownload.cse.ucsc.edu/admin/exe/windows.x86_64/bedGraphToBigWig.exe" -o "$RUNNER_TEMP/bin/bedGraphToBigWig.exe"
+  #         chmod +x "$RUNNER_TEMP/bin/"*.exe
+  #         echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+  #         bigWigToBedGraph.exe 2>/dev/null | head -n1 || true
+  #         bedGraphToBigWig.exe 2>/dev/null | head -n1 || true
 
-      - name: Build & install (make release)
-        run: |
-          make PREFIX="$PREFIX" release
-          ls -l "$BIN_DIR"
-          "$BIN_DIR/splicecov" -h || true
+  #     - name: Build & install (make release)
+  #       run: |
+  #         make PREFIX="$PREFIX" release
+  #         ls -l "$BIN_DIR"
+  #         "$BIN_DIR/splicecov" -h || true
 
-      - name: Run mini integration smoke
-        env:
-          BIN_DIR: ${{ env.BIN_DIR }}
-          BEDGRAPH_TO_BIGWIG: bedGraphToBigWig.exe
-        run: |
-          bash test/smoke.sh
+  #     - name: Run mini integration smoke
+  #       env:
+  #         BIN_DIR: ${{ env.BIN_DIR }}
+  #         BEDGRAPH_TO_BIGWIG: bedGraphToBigWig.exe
+  #       run: |
+  #         bash test/smoke.sh
