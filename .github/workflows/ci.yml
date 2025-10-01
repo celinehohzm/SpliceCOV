@@ -91,69 +91,53 @@ jobs:
         run: |
           bash test/smoke.sh
 
-  windows_msys2:
-    name: windows-latest / MSYS2
+  # Windows job using native Python + Chocolatey make (no MSYS2/PEP 668 issues)
+  windows_native:
+    name: windows-latest / Python 3.12
     runs-on: windows-latest
-    strategy:
-      fail-fast: false
     defaults:
       run:
-        shell: msys2 {0}
+        shell: bash
     env:
-      MSYS2_PATH_TYPE: inherit
       PREFIX: ${{ github.workspace }}/.local
       BIN_DIR: ${{ github.workspace }}/.local/bin
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up MSYS2
-        uses: msys2/setup-msys2@v2
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          update: true
-          install: >-
-            base-devel
-            git
-            gawk
-            diffutils
-            rsync
-            curl
-            wget
-            unzip
-            coreutils
-            findutils
-            python
-            python-pip
+          python-version: '3.12'
 
-      - name: Show Python & ensure pip
+      - name: Install GNU make via Chocolatey
         run: |
-          python --version
-          python -m pip --version || true
-          python -m pip install --upgrade pip setuptools wheel
+          choco install make -y
+          make --version
 
-      - name: Install Python requirements (MSYS2)
+      - name: pip install requirements
+        if: hashFiles('requirements.txt') != ''
         run: |
-          if [ -f requirements.txt ]; then
-            python -m pip install -r requirements.txt || true
-          fi
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
 
       - name: Install UCSC tools (Windows .exe)
         run: |
-          mkdir -p "$BIN_DIR"
-          curl -fsSL "https://hgdownload.cse.ucsc.edu/admin/exe/windows.x86_64/bigWigToBedGraph.exe" -o "$BIN_DIR/bigWigToBedGraph.exe"
-          curl -fsSL "https://hgdownload.cse.ucsc.edu/admin/exe/windows.x86_64/bedGraphToBigWig.exe" -o "$BIN_DIR/bedGraphToBigWig.exe"
-          chmod +x "$BIN_DIR/bigWigToBedGraph.exe" "$BIN_DIR/bedGraphToBigWig.exe"
-          echo "$BIN_DIR" >> "$GITHUB_PATH"
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -fsSL "https://hgdownload.cse.ucsc.edu/admin/exe/windows.x86_64/bigWigToBedGraph.exe" -o "$RUNNER_TEMP/bin/bigWigToBedGraph.exe"
+          curl -fsSL "https://hgdownload.cse.ucsc.edu/admin/exe/windows.x86_64/bedGraphToBigWig.exe" -o "$RUNNER_TEMP/bin/bedGraphToBigWig.exe"
+          chmod +x "$RUNNER_TEMP/bin/"*.exe
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
           bigWigToBedGraph.exe 2>/dev/null | head -n1 || true
           bedGraphToBigWig.exe 2>/dev/null | head -n1 || true
 
-      - name: Build & install (make release via MSYS2)
+      - name: Build & install (make release)
         run: |
           make PREFIX="$PREFIX" release
           ls -l "$BIN_DIR"
           "$BIN_DIR/splicecov" -h || true
 
-      - name: Run mini integration smoke (MSYS2)
+      - name: Run mini integration smoke
         env:
           BIN_DIR: ${{ env.BIN_DIR }}
           BEDGRAPH_TO_BIGWIG: bedGraphToBigWig.exe
