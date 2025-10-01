@@ -9,9 +9,8 @@ lightgbm>=4.0
 tqdm>=4.65
 joblib>=1.3
 
-# Optional: read bigWig directly in Python (most pipelines use UCSC tools instead)
-pybigwig>=0.3.22
-
-# Optional: BED/GFF helpers (only if your scripts use them)
+# Platform-specific extras:
+pybigwig>=0.3.22; platform_system != "Windows"
+pybedtools>=0.9.0; platform_system != "Windows"
 biopython>=1.81
-pybedtools>=0.9.0
+
