@@ -2,7 +2,9 @@
 
 SpliceCOV is a segmentation pipeline for **detecting splice sites and transcription start/end sites (TSS/TES) from RNA-Seq coverage**. SpliceCOV follows a two-step approach: it first employs a fast heuristic to identify candidate changepoints, and then applies a LightGBM decision-tree classifier to filter and refine these candidates, generating high-confidence transcriptional boundaries. 
 
-When SpliceCOV's predictions are used to guide transcriptome assembly with [StringTie]([url](https://ccb.jhu.edu/software/stringtie/index.shtml?t=manual))'s --ptf option,  the resulting transcripts exhibit increased precision without sacrificing sensitivity. As the number of samples per tissue increases, SpliceCOV continues to improve its accuracy in detecting transcripts, highlighting its scalability. 
+The required inputs for SpliceCOV are the junctions (in `bed` format) file and coverage (in `bigwig` format) file. It is recommended to generate these using Tiebrush/TieCOV (https://github.com/alevar/tiebrush).
+
+When SpliceCOV's predictions are used to guide transcriptome assembly with StringTie's  `--ptf` option (https://ccb.jhu.edu/software/stringtie/index.shtml?t=manual),  the resulting transcripts exhibit increased precision without sacrificing sensitivity. As the number of samples per tissue increases, SpliceCOV continues to improve its accuracy in detecting transcripts, highlighting its scalability. 
 
 ---
 
