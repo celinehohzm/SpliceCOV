@@ -175,23 +175,13 @@ All outputs are written to the `out/` folder.
 
 **Core junction outputs**
 
-- `${basename}`.sorted.bed — sorted junctions
-- `${basename}`.jproc.txt — processed junctions
-- `${basename}`.jbund.txt — junctions + coverage
 - `${basename}`.jscore.txt — LightGBM scores (junctions)
-- `${basename}`.jpos.txt — score-positive junctions
 - `${basename}`.jpos.ptf — PTF for score-positive junctions
 
-**Round-2 / TSSTES outputs**
+**Core TSSTES outputs**
 
-- `${basename}`.bw.bedGraph — BigWig converted to BedGraph
-- `${basename}`.r2.bund.txt — round-2 bundles
-- `${basename}`.r2.metrics.txt — TSSTES metrics
-- `${basename}`.r2.metrics.ptf — PTF after metrics
-- `${basename}`.r2.tsstes.ptf — TSS/CPAS only
 - `${basename}`.r2.tsstes.scores.txt — LightGBM scores (TSS/CPAS)
 - `${basename}`.r2.tsstes.pos.txt — score-positive TSS/CPAS
-- `${basename}`.r2.tsstes.pos.eval.txt — evaluation vs annotation (only with -a)
 
 **Final combined output**
 
@@ -203,11 +193,15 @@ All outputs are written to the `out/` folder.
 
 After generating the `${basename}.combined.ptf` file, you can run Stringtie with the `-ptf` option. 
 
-Ideally it will boost precision while retaining sensitivity when running with SpliceCOV's `-ptf` predictions. 
-
-Check out Stringtie's manual here: https://ccb.jhu.edu/software/stringtie/index.shtml?t=manual
-
+Sample command:
 `stringtie sample.bam -ptf out/<basename>_combined.ptf -o sample.stringtie.gtf `
+
+As shown in the figure below, SpliceCOV-guided assemblies consistently achieve higher precision without compromising sensitivity, as measured by the number of reference‐matching transcripts. Moreover, the precision gain increases with tissue cohort size, likely reflecting the cleaner coverage signals in larger sample sets.
+
+<img width="637" height="794" alt="image" src="https://github.com/user-attachments/assets/d186eed9-be27-40d9-b6d4-b610ce246eaf" />
+
+ 
+Check out Stringtie's manual here: https://ccb.jhu.edu/software/stringtie/index.shtml?t=manual
 
 --- 
 ## Tips & Troubleshooting
