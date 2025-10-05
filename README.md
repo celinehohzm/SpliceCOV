@@ -6,8 +6,9 @@ When SpliceCOV's predictions are used to guide transcriptome assembly with [Stri
 
 ---
 
-## Getting Started
+## Installation
 
+You can build from source by:
 ```bash
 conda create -n splicecov python=3.10 # Python version 3.10
 conda activate splicecov
