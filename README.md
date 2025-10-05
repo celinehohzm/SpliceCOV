@@ -1,10 +1,4 @@
-# SpliceCOV
-
-SpliceCOV uses a **LightGBM-based machine learning model** to score and predict splice sites and TSS/TESs from RNA-seq coverage evidence.
-
-By providing these predictions, SpliceCOV improves **precision while maintaining sensitivity**, especially when running StringTie with the --ptf option.
-
-It can also evaluate predictions against a genome annotation (GTF) if provided.
+# SpliceCOV: Accurate Identification of Transcriptional Features from RNA Sequencing
 
 SpliceCOV is a segmentation pipeline for **detecting splice sites and transcription start/end sites (TSS/TES) from RNA-Seq coverage**. SpliceCOV follows a two-step approach: it first employs a fast heuristic to identify candidate changepoints, and then applies a LightGBM decision-tree classifier to filter and refine these candidates, generating high-confidence transcriptional boundaries. 
 
@@ -15,12 +9,20 @@ When SpliceCOV's predictions are used to guide transcriptome assembly with [Stri
 ## Getting Started
 
 ```bash
+conda create -n splicecov python=3.10 # Python version 3.10
+conda activate splicecov
+pip install lightgbm numpy pandas
+
 git clone https://github.com/celinehohzm/SpliceCOV.git
 cd SpliceCOV
 python3 -m pip install --user -r requirements.txt
 make PREFIX="$HOME/.local" release
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc   # or ~/.zshrc
+```
 
+Sample commands: 
+
+```bash
 # Minimal run (junction + coverage only)
 ./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig
 
@@ -35,11 +37,9 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc   # or ~/.zshrc
 ```
 
 ---
-## Installation
+## Installation Requirements
 
-SpliceCOV is written in Bash with helper scripts in Perl and Python.
-
-### Requirements
+SpliceCOV is written in Bash with helper scripts in Perl and Python. The softwares needed are:
 
 - `bash` (version 4 or newer)
 - Standard Linux tools: `awk`, `sort`, `comm` (comm only if using `-a`)
@@ -51,15 +51,37 @@ SpliceCOV is written in Bash with helper scripts in Perl and Python.
   - `lightgbm`
   - `numpy`
   - `pandas`
-- **Optional (recommended):** `GNU time` for detailed runtime/memory stats  
-  - macOS: `brew install gnu-time` (available as `gtime`)
 
-### Python setup with conda
+---
+## Inputs (recommended to generate with TieBrush & TieCov)
 
-```bash
-conda create -n splicecov python=3.10 # Python version 3.10
-conda activate splicecov
-pip install lightgbm numpy pandas
+SpliceCOV expects the following:
+
+- TieBrush junctions file (`-j`) — aggregated splice junctions
+- BigWig coverage file (`-c`) — aggregated per-base read coverage
+
+Both of these files are typically produced by the TieBrush and TieCov tools (https://github.com/alevar/tiebrush).
+
+
+
+Junctions file format (columns in order: chr, junction_start, junction_end, junction_name, number_of_samples, strand):
+```
+track name=junctions
+chr1    10620   21193   JUNC00000001    1       +
+chr1    11348   11410   JUNC00000002    1       -
+chr1    11410   17721   JUNC00000003    1       -
+chr1    11439   21424   JUNC00000004    1       -
+chr1    11671   12009   JUNC00000005    12      +
+```
+
+
+Bedgraph file format generated from bigwig (colummns in order: chr, position_start, position_end, coverage):
+```
+chr1    10535   10538   1
+chr1    10538   10540   2
+chr1    10540   10542   4
+chr1    10542   10545   7
+chr1    10545   10560   8
 ```
 
 ---
@@ -144,39 +166,6 @@ All output files will be named like `out/${basename}.*`.
 # More permissive calling (more positives)
 ./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -s 0.25
 ```
-
----
-## Inputs (recommended to generate with TieBrush & TieCov)
-
-SpliceCOV expects the following:
-
-- TieBrush junctions file (`-j`) — aggregated splice junctions
-- BigWig coverage file (`-c`) — aggregated per-base read coverage
-
-Both of these files are typically produced by the TieBrush and TieCov tools (https://github.com/alevar/tiebrush).
-
-
-
-Junctions file format (columns in order: chr, junction_start, junction_end, junction_name, number_of_samples, strand):
-```
-track name=junctions
-chr1    10620   21193   JUNC00000001    1       +
-chr1    11348   11410   JUNC00000002    1       -
-chr1    11410   17721   JUNC00000003    1       -
-chr1    11439   21424   JUNC00000004    1       -
-chr1    11671   12009   JUNC00000005    12      +
-```
-
-
-Bedgraph file format generated from bigwig (colummns in order: chr, position_start, position_end, coverage):
-```
-chr1    10535   10538   1
-chr1    10538   10540   2
-chr1    10540   10542   4
-chr1    10542   10545   7
-chr1    10545   10560   8
-```
-
 ---
 ## Output 
 All outputs are written to the `out/` folder.
