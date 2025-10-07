@@ -59,19 +59,10 @@ check-deps:
 	@command -v sort    >/dev/null 2>&1 || { echo "Missing: sort"  >&2; exit 1; }
 	@command -v comm    >/dev/null 2>&1 || { echo "Missing: comm (coreutils)" >&2; exit 1; }
 	@command -v $(PYTHON) >/dev/null 2>&1 || { echo "Missing: $(PYTHON)" >&2; exit 1; }
-	@# Enforce Python >= 3.10 (BSD make-safe heredoc)
-	@$(PYTHON) - <<-PY
-		import sys
-		req = (int("$(MIN_PY_MAJOR)"), int("$(MIN_PY_MINOR)"))
-		cur = sys.version_info
-		if (cur.major, cur.minor) < req:
-			print(f"ERROR: Python >= {req[0]}.{req[1]} required; found {cur.major}.{cur.minor}.{cur.micro}", file=sys.stderr)
-			print("Tip: create a new env, e.g.:", file=sys.stderr)
-			print("  conda create -n splicecov -c conda-forge -c bioconda python=3.11 lightgbm ucsc-bigwigtobedgraph -y", file=sys.stderr)
-			print("  conda activate splicecov", file=sys.stderr)
-			sys.exit(2)
-		print(f"OK: Python {cur.major}.{cur.minor}.{cur.micro}")
-	PY
+	@# Enforce Python >= 3.10 (portable one-liner; no heredoc)
+	@$(PYTHON) -c 'import sys; req=($(MIN_PY_MAJOR),$(MIN_PY_MINOR)); cur=sys.version_info; \
+ok=(cur.major,cur.minor)>=req; \
+sys.exit(0) if ok else (sys.stderr.write(f"ERROR: Python >= {req[0]}.{req[1]} required; found {cur.major}.{cur.minor}.{cur.micro}\nTip:\n  conda create -n splicecov -c conda-forge -c bioconda python=3.11 lightgbm ucsc-bigwigtobedgraph -y\n  conda activate splicecov\n"), sys.exit(2))'
 	@# Try to ensure bigWigToBedGraph exists; attempt auto-install unless opted out
 	@if ! command -v $(UCSC_TOOL) >/dev/null 2>&1; then \
 	  if [ "$(SKIP_AUTO_DEPS)" != "1" ]; then \
