@@ -190,8 +190,6 @@ As shown in the figure below, SpliceCOV-guided assemblies consistently achieve h
 
 - If you see “`bigWigToBedGraph: command not found`”, install the UCSC utilities and ensure they’re in your PATH.
 
-- On macOS, GNU time appears as gtime; SpliceCOV auto-detects it for better runtime/memory summaries.
-
 - Use `-b` to keep runs tidy and identifiable (e.g., -b `gtex_v8_brain_cortex`).
 
 - Tune `-s` to adjust precision/recall in your calls; higher thresholds are stricter.
