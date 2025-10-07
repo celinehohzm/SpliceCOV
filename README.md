@@ -90,13 +90,13 @@ chr1    10545   10560   8
 
 If you have TieBrush junctions and a BigWig coverage file, run:
 
-`./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig`
+`splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig`
 
 **Annotation mode**
 
 If you also provide a **GTF annotation**, SpliceCOV will build reference introns and unique splice sites, and evaluate predictions:
 
-`./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -a gencode.v43.annotation.gtf`
+`splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -a gencode.v43.annotation.gtf`
 
 **Full CLI:**
 ```
@@ -153,10 +153,10 @@ All output files will be named like `out/${basename}.*`.
 **Examples:**
 ```
 # Stricter calling (fewer positives)
-./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -s 0.8
+splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -s 0.8
 
 # More permissive calling (more positives)
-./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -s 0.25
+splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -s 0.25
 ```
 ---
 ## Output 
