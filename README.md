@@ -47,7 +47,7 @@ SpliceCOV is written in Bash with helper scripts in Perl and Python. The softwar
   - Linux/macOS binaries: `http://hgdownload.soe.ucsc.edu/admin/exe/`
   - Put the binary in your `PATH` (e.g., `/usr/local/bin/`).
   - macOS (Homebrew): `brew install ucsc-genome-browser`
-- Python (version 3.8 or newer) with:
+- Python (version 3.10 or newer) with:
   - `lightgbm`
   - `numpy`
   - `pandas`
