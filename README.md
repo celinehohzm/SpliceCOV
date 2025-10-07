@@ -14,9 +14,13 @@ You can build from source by:
 ```bash
 git clone https://github.com/celinehohzm/SpliceCOV.git
 cd SpliceCOV
-python3 -m pip install --user -r requirements.txt
+conda env create -f /path/to/SpliceCOV/environment.yml
+conda activate splicecov
 make PREFIX="$HOME/.local" release
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc   # or ~/.zshrc
+
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc   # Linux/bash
+# or
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc    # macOS/zsh
 ```
 
 Sample commands: 
