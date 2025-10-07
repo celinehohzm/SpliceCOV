@@ -32,9 +32,7 @@ Optional:
 
 Outputs (only these remain in out/):
   <basename>.jscore.txt
-  <basename>.jpos.ptf
   <basename>.tsstes.scores.txt
-  <basename>.tsstes.pos.txt
   <basename>.combined.ptf
 USAGE
   exit 1
@@ -136,7 +134,7 @@ need_cmd sort
 need_cmd bigWigToBedGraph
 $anno_present && need_cmd comm || true
 for s in "${common_helpers[@]}"; do need_file "${helpers_dir}/${s}"; done
-if $anno_present; then for s in "${anno_helpers[@]}"; do need_file "${helpers_dir}/${s}"; done; fi
+if $anno_present; then for s in "${anno_helpers[@]}"; do need_file "${helpers_dir}/${s}"]; done; fi
 
 # ---------------------------
 # Outputs & paths
@@ -153,9 +151,7 @@ mkdir -p "$outdir"
 
 # Final deliverables (only these remain)
 jscore_out="$outdir/${base_name}.jscore.txt"
-jpos_ptf_out="$outdir/${base_name}.jpos.ptf"
 tsstes_scores_out="$outdir/${base_name}.tsstes.scores.txt"
-tsstes_pos_out="$outdir/${base_name}.tsstes.pos.txt"
 combined_out="$outdir/${base_name}.combined.ptf"
 
 # LightGBM threshold flags
@@ -179,7 +175,9 @@ trap cleanup EXIT
 sorted_junc="$workdir/${base_name}.sorted.bed"
 processed_junc="$workdir/${base_name}.jproc.txt"
 processed_junc_bundle="$workdir/${base_name}.jbund.txt"
-jpos_source="$workdir/${base_name}.jpos.txt"   # score-positive junctions (pre-PTF)
+jpos_source="$workdir/${base_name}.jpos.txt"          # score-positive junctions (pre-PTF)
+jpos_ptf_tmp="$workdir/${base_name}.jpos.ptf"         # temp PTF for junctions (not persisted)
+tsstes_pos_tmp="$workdir/${base_name}.tsstes.pos.txt" # temp positives (not persisted)
 
 # Annotation-dependent intermediates
 annotation_introns="$workdir/ann.introns.bed"
@@ -263,9 +261,9 @@ if $anno_present; then
   fi
 fi
 
-log "Step 7: Emit PTF (junctions) -> ${jpos_ptf_out}"
+log "Step 7: Emit PTF (junctions) -> temp (not persisted)"
 awk 'BEGIN{OFS="\t"} { print $1, $2, $5, $12 }' \
-  "$jpos_source" > "$jpos_ptf_out"
+  "$jpos_source" > "$jpos_ptf_tmp"
 
 log "Step 8a: Converting BigWig -> BedGraph for round 2..."
 bigWigToBedGraph "$input_tiebrush_bigwig" "$converted_bedgraph"
@@ -296,16 +294,16 @@ python3 "${helpers_dir}/LightGBM_tss.py" \
   -o "$tsstes_scores_out" \
   ${score_flags[@]+"${score_flags[@]}"}
 
-log "Step 13: Filter TSSTES score-positive -> ${tsstes_pos_out}"
+log "Step 13: Filter TSSTES score-positive -> temp (not persisted)"
 awk '$NF==1 || $NF==1.0' \
-  "$tsstes_scores_out" > "$tsstes_pos_out"
+  "$tsstes_scores_out" > "$tsstes_pos_tmp"
 
 if $anno_present; then
   log "Step 14: (Optional) TSSTES evaluation vs annotation (not persisted)..."
-  if [[ -s "$tsstes_pos_out" && -s "$tiebrush_unique_tsstes_in_annotation" ]]; then
+  if [[ -s "$tsstes_pos_tmp" && -s "$tiebrush_unique_tsstes_in_annotation" ]]; then
     set +e
     python "${helpers_dir}/evaluate_TSSTES_new.py" \
-      "$tsstes_pos_out" \
+      "$tsstes_pos_tmp" \
       "$tiebrush_unique_tsstes_in_annotation" \
       > /dev/null || true
     set -e
@@ -317,11 +315,11 @@ fi
 log "Step 15: Combine ptfs -> ${combined_out}"
 "${helpers_dir}/combine_ptfs.sh" \
   "$jpos_source" \
-  "$tsstes_pos_out" \
+  "$tsstes_pos_tmp" \
   > "$combined_out"
 
 log "Final outputs:"
-ls -lh "$jscore_out" "$jpos_ptf_out" "$tsstes_scores_out" "$tsstes_pos_out" "$combined_out" || true
+ls -lh "$jscore_out" "$tsstes_scores_out" "$combined_out" || true
 
 log "Cleaning up intermediates..."
 # handled by trap cleanup on $workdir
