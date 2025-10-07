@@ -86,19 +86,19 @@ chr1    10545   10560   8
 
 ---
 ## Usage
-**Junction-only mode**
+**Prediction only mode**
 
 If you have TieBrush junctions and a BigWig coverage file, run:
 
 `splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig`
 
-**Annotation mode**
+**Prediction + Evaluation mode**
 
-If you also provide a **GTF annotation**, SpliceCOV will build reference introns and unique splice sites, and evaluate predictions:
+If you also provide a **GTF annotation**, SpliceCOV will evaluate its predictions based on the input GTF file:
 
 `splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -a gencode.v43.annotation.gtf`
 
-**Full CLI:**
+**Full SpliceCOV commands:**
 ```
 Usage: splicecov.sh -j <input_tiebrush_junc> -c <input_tiebrush_bigwig> [-a <annotation_gtf>] [-b <basename>] [-s <threshold>]
 
