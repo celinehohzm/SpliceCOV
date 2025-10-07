@@ -32,9 +32,6 @@ Sample commands:
 # Run with annotation (adds evaluation steps)
 ./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -a gencode.v43.annotation.gtf
 
-# Resume from step 8
-./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -n 8
-
 # Show help
 ./splicecov.sh -h
 ```
@@ -101,16 +98,9 @@ If you also provide a **GTF annotation**, SpliceCOV will build reference introns
 
 `./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -a gencode.v43.annotation.gtf`
 
-**Resuming with `-n`**
-
-SpliceCOV runs as numbered steps (1 → 15).
-If interrupted, resume from a later step:
-
-`./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -n 8`
-
 **Full CLI:**
 ```
-Usage: splicecov.sh -j <input_tiebrush_junc> -c <input_tiebrush_bigwig> [-a <annotation_gtf>] [-n <start_step>] [-b <basename>] [-s <threshold>]
+Usage: splicecov.sh -j <input_tiebrush_junc> -c <input_tiebrush_bigwig> [-a <annotation_gtf>] [-b <basename>] [-s <threshold>]
 
 Required:
   -j <file> : input TieBrush junction file 
@@ -119,14 +109,13 @@ Required:
 Optional:
   -a <file> : input annotation (GTF). If provided, annotation-dependent steps
               (building introns/unique splice sites and evaluation) will run.
-  -n <int>  : step number to start from (default: 1). 1 = sort junctions, 2 = add coverage, ...
   -b <str>  : basename to use for ALL output files; overrides the default from -j.
-  -s <num>  : probability threshold in [0,1] to pass to LightGBM scoring scripts (steps 4 & 12).
-              If omitted, those scripts use their own default (0.4).
+  -s <num>  : LightGBM scoring threshold [0,1], default is 0.4.
 
-Notes:
-  • All outputs are written to the "out/" directory.
-  • If -a is omitted, evaluation steps are skipped automatically.
+Outputs (only these remain in out/):
+  <basename>.jscore.txt
+  <basename>.tsstes.scores.txt
+  <basename>.combined.ptf
 ```
 
 ---
@@ -173,18 +162,10 @@ All output files will be named like `out/${basename}.*`.
 ## Output 
 All outputs are written to the `out/` folder.
 
-**Core junction outputs**
+**Core outputs**
 
 - `${basename}`.jscore.txt — LightGBM scores (junctions)
-- `${basename}`.jpos.ptf — PTF for score-positive junctions
-
-**Core TSSTES outputs**
-
-- `${basename}`.r2.tsstes.scores.txt — LightGBM scores (TSS/CPAS)
-- `${basename}`.r2.tsstes.pos.txt — score-positive TSS/CPAS
-
-**Final combined output**
-
+- `${basename}`.tsstes.scores.txt — LightGBM scores (TSS/CPAS)
 - `${basename}`.combined.ptf — combined score-positive splice-sites + TSS/TESs
 
 
