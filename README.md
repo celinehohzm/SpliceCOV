@@ -164,9 +164,31 @@ All outputs are written to the `out/` folder.
 
 **Core outputs**
 
-- `${basename}`.jscore.txt — LightGBM scores (junctions)
-- `${basename}`.tsstes.scores.txt — LightGBM scores (TSS/CPAS)
+- `${basename}`.jscore.txt — LightGBM scores in second last column, predicted label in last column (splice-sites)
+
+  ```
+  chromosome      position        junction_id     num_samples     strand  perc    cov_diff        perc_cov_diff   junc_len        smooth_metric   cov_change_dir  event     confidence_score        predicted_label
+  chr1    10620   JUNC00000001    1       +       0.0032-0.0001-1.0000-1.0000     10573   0.6095  56      56.2    1       JSTART  0.8504018054835413      1
+  chr1    21194   JUNC00000001    1       +       0.0032-0.0001-1.0000-1.0000     10573   0.0127  41      0.2202  1       JEND    0.02303948168568817     0
+  chr1    11348   JUNC00000002    1       -       1.0000-1.0000-1.0000-1.0000     62      0.0537  2       0.7333  1       JSTART  0.0     0
+  chr1    11411   JUNC00000002    1       -       1.0000-1.0000-1.0000-1.0000     62      0.5833  1       0.4667  0       JEND    0.0     0
+  ```
+- `${basename}`.tsstes.scores.txt — LightGBM scores in second last column, predicted label in last column (TSS/CPAS)
+
+  ```
+  chromosome      position        unused  row_type        value1  value2  value3  value4  value5  value6  value7  value8  confidence_score        predicted_label
+  chr1    4491239 .       TSS     1.0     1       4.62    1.0     4.03    0.0704  0.3152  True    0.17495887176328234     0
+  chr1    4491389 .       TSS     0.8486  7       33.329  25.89   24.1    0.4474  0.4017  True    0.4870862389716791      1
+  chr1    4492668 .       CPAS    0.933   52      17.906  43.36   -2.9    -0.0506 0.4723  True    0.18820219697041604     0
+  ```
 - `${basename}`.combined.ptf — combined score-positive splice-sites + TSS/TESs
+
+  ```
+  chr1    10620   +       JSTART
+  chr1    11269   .       TSS
+  chr1    11383   .       CPAS
+  chr1    11418   .       CPAS
+  ```
 
 
 ---
