@@ -8,6 +8,11 @@ BINDIR    := $(PREFIX)/bin
 SHAREDIR  := $(PREFIX)/share/splicecov
 PKGNAME   := splicecov
 
+# Python interpreter & minimum version
+PYTHON    ?= python3
+MIN_PY_MAJOR := 3
+MIN_PY_MINOR := 10
+
 # Entrypoint inside repo
 ENTRY     := scripts/spliceCOV.sh
 SHIP_DIRS := scripts bin
@@ -53,7 +58,21 @@ check-deps:
 	@command -v awk     >/dev/null 2>&1 || { echo "Missing: awk"   >&2; exit 1; }
 	@command -v sort    >/dev/null 2>&1 || { echo "Missing: sort"  >&2; exit 1; }
 	@command -v comm    >/dev/null 2>&1 || { echo "Missing: comm (coreutils)" >&2; exit 1; }
-	@command -v python3 >/dev/null 2>&1 || { echo "Missing: python3" >&2; exit 1; }
+	@command -v $(PYTHON) >/dev/null 2>&1 || { echo "Missing: $(PYTHON)" >&2; exit 1; }
+
+	@# Enforce Python >= 3.10
+	@$(PYTHON) - <<'PY'
+import sys
+req = (int("$(MIN_PY_MAJOR)"), int("$(MIN_PY_MINOR)"))
+cur = sys.version_info
+if (cur.major, cur.minor) < req:
+    print(f"ERROR: Python >= {req[0]}.{req[1]} required; found {cur.major}.{cur.minor}.{cur.micro}", file=sys.stderr)
+    print("Tip: create a new env, e.g.:", file=sys.stderr)
+    print("  conda create -n splicecov -c conda-forge -c bioconda python=3.11 lightgbm ucsc-bigwigtobedgraph -y", file=sys.stderr)
+    print("  conda activate splicecov", file=sys.stderr)
+    sys.exit(2)
+print(f"OK: Python {cur.major}.{cur.minor}.{cur.micro}")
+PY
 
 	@# Try to ensure bigWigToBedGraph exists; attempt auto-install unless opted out
 	@if ! command -v $(UCSC_TOOL) >/dev/null 2>&1; then \
@@ -70,7 +89,7 @@ check-deps:
 	fi
 
 	@echo "Core dependencies found"
-	@python3 -c "import lightgbm" >/dev/null 2>&1 && echo "Python: lightgbm available" || echo "Python: lightgbm not found (will install if $(REQ) exists)"
+	@$(PYTHON) -c "import lightgbm" >/dev/null 2>&1 && echo "Python: lightgbm available" || echo "Python: lightgbm not found (will install if $(REQ) exists)"
 
 # Install UCSC bigWigToBedGraph (prefers conda; falls back to UCSC prebuilt)
 install-ucsc-bw2bg:
@@ -114,8 +133,9 @@ install-ucsc-bw2bg:
 # =========================================================
 python-deps:
 	@if [ -f "$(REQ)" ]; then \
-	  echo "Installing Python deps from $(REQ) (user scope)"; \
-	  python3 -m pip install --user -r "$(REQ)"; \
+	  echo "Installing Python deps from $(REQ) (user scope) using $(PYTHON)"; \
+	  $(PYTHON) -m pip install --user --upgrade pip; \
+	  $(PYTHON) -m pip install --user -r "$(REQ)"; \
 	else \
 	  echo "No $(REQ); skipping Python deps"; \
 	fi
@@ -196,15 +216,21 @@ print-locations:
 	@echo "BINDIR   = $(BINDIR)"
 	@echo "SHAREDIR = $(SHAREDIR)"
 	@echo "ENTRY    = $(ENTRY)"
+	@echo "PYTHON   = $(PYTHON)"
+	@echo "MIN_PY   = $(MIN_PY_MAJOR).$(MIN_PY_MINOR)"
 	@echo "SKIP_AUTO_DEPS = $(SKIP_AUTO_DEPS)"
 	@echo "FORCE_REINSTALL = $(FORCE_REINSTALL)"
 
 help:
 	@echo "SpliceCOV Make targets"
-	@echo "  make release                         Install into \$$PREFIX (default: /usr/local)"
-	@echo "  make PREFIX=\$$HOME/.local release    Install into user prefix"
-	@echo "  make uninstall                       Remove installed launcher and shared dir"
-	@echo "  make help                            Show this help"
+	@echo "  make release                          Install into \$$PREFIX (default: /usr/local)"
+	@echo "  make PREFIX=\$$HOME/.local release     Install into user prefix"
+	@echo "  make uninstall                        Remove installed launcher and shared dir"
+	@echo "  make help                             Show this help"
+	@echo ""
+	@echo "Variables:"
+	@echo "  PYTHON=$(PYTHON) (override to choose interpreter)"
+	@echo "  MIN_PY=$(MIN_PY_MAJOR).$(MIN_PY_MINOR) (required minimum)"
 	@echo ""
 	@echo "Auto-deps:"
 	@echo "  SKIP_AUTO_DEPS=1   Disable auto-install of UCSC tool"
