@@ -17,7 +17,7 @@ need_file() { [[ -f "$1" ]] || die "Missing helper script: $1"; }
 # ---------------------------
 usage() {
   cat <<'USAGE'
-Usage: splicecov.sh -j <input_tiebrush_junc> -c <input_tiebrush_bigwig> [-a <annotation_gtf>] [-n <start_step>] [-b <basename>] [-s <threshold>]
+Usage: splicecov.sh -j <input_tiebrush_junc> -c <input_tiebrush_bigwig> [-a <annotation_gtf>] [-b <basename>] [-s <threshold>]
 
 Required:
   -j <file> : input TieBrush junction file 
@@ -26,14 +26,16 @@ Required:
 Optional:
   -a <file> : input annotation (GTF). If provided, annotation-dependent steps
               (building introns/unique splice sites and evaluation) will run.
-  -n <int>  : step number to start from (default: 1). 1 = sort junctions, 2 = add coverage, ...
   -b <str>  : basename to use for ALL output files; overrides the default from -j.
-  -s <num>  : probability threshold in [0,1] to pass to LightGBM scoring scripts (steps 4 & 12).
+  -s <num>  : probability threshold in [0,1] to pass to LightGBM scoring scripts (junctions & TSSTES).
               If omitted, those scripts use their own default (0.4).
 
-Notes:
-  • All outputs are written to the "out/" directory.
-  • If -a is omitted, evaluation steps are skipped automatically.
+Outputs (only these remain in out/):
+  <basename>.jscore.txt
+  <basename>.jpos.ptf
+  <basename>.tsstes.scores.txt
+  <basename>.tsstes.pos.txt
+  <basename>.combined.ptf
 USAGE
   exit 1
 }
@@ -41,17 +43,15 @@ USAGE
 # ---------------------------
 # Defaults & arg parsing
 # ---------------------------
-start_step=1
 input_annotation=""
 basename_arg=""
 score_arg=""
 
-while getopts ":j:c:a:n:b:s:h" opt; do
+while getopts ":j:c:a:b:s:h" opt; do
   case $opt in
     j) input_tiebrush_junc="$OPTARG" ;;
     c) input_tiebrush_bigwig="$OPTARG" ;;
     a) input_annotation="$OPTARG" ;;
-    n) start_step="$OPTARG" ;;
     b) basename_arg="$OPTARG" ;;
     s) score_arg="$OPTARG" ;;
     h) usage ;;
@@ -71,10 +71,6 @@ anno_present=false
 if [[ -n "$input_annotation" ]]; then
   [[ ! -f "$input_annotation" ]] && { echo "ERROR: Annotation GTF not found: $input_annotation" >&2; exit 2; }
   anno_present=true
-fi
-
-if ! [[ "$start_step" =~ ^[0-9]+$ ]] || [ "$start_step" -lt 1 ]; then
-  echo "ERROR: -n requires a positive integer." >&2; exit 2
 fi
 
 if [[ -n "$basename_arg" ]]; then
@@ -106,7 +102,7 @@ if [[ -z "$helpers_dir" ]]; then
 fi
 [[ -z "$helpers_dir" ]] && die "Could not locate helpers dir. Set SPLICECOV_HELPERS_DIR."
 
-# >>> NEW: resolve model directory once (env override supported)
+# >>> Models dir
 MODEL_DIR="${SPLICECOV_MODEL_DIR:-${helpers_dir%/}/model_output}"
 export SPLICECOV_MODEL_DIR="$MODEL_DIR"
 log "Models dir: $MODEL_DIR"
@@ -134,7 +130,7 @@ anno_helpers=(
 # Preflight checks
 # ---------------------------
 log "Preflight: checking tools..."
-need_cmd python3             # changed to python3
+need_cmd python3
 need_cmd awk
 need_cmd sort
 need_cmd bigWigToBedGraph
@@ -155,30 +151,12 @@ fi
 outdir="out"
 mkdir -p "$outdir"
 
-processed_junc="$outdir/${base_name}.jproc.txt"
-processed_junc_bundle="$outdir/${base_name}.jbund.txt"
-processed_junc_bundle_w_scores="$outdir/${base_name}.jscore.txt"
-processed_junc_bundle_w_scores_scpositive="$outdir/${base_name}.jpos.txt"
-processed_junc_bundle_w_scores_scpositive_ptf="$outdir/${base_name}.jpos.ptf"
-
-# Annotation-dependent outputs
-annotation_introns="$outdir/ann.introns.bed"
-annotation_uniquess="$outdir/${base_name}.ann.uss.bed"
-tiebrush_uniquess="$outdir/${base_name}.base.uss.bed"
-tiebrush_uniquess_in_annotation="$outdir/${base_name}.base.uss.in_ann.bed"
-tiebrush_unique_tsstes_in_annotation="$outdir/${base_name}.base.tsstes.in_ann.bed"
-
-# Round-2 / TSSTES outputs
-round1_processed_junc="$outdir/${base_name}.r1.jproc.txt"
-round2_processed_bundles="$outdir/${base_name}.r2.bund.txt"
-round2_processed_bundles_w_metrics="$outdir/${base_name}.r2.metrics.txt"
-round2_processed_bundles_w_metrics_ptf="$outdir/${base_name}.r2.metrics.ptf"
-round2_processed_bundles_w_metrics_tsstes_ptf="$outdir/${base_name}r2.tsstes.ptf"
-round2_processed_bundles_w_metrics_tsstes_ptf_w_scores="$outdir/${base_name}.r2.tsstes.scores.txt"
-round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive="$outdir/${base_name}.r2.tsstes.pos.txt"
-round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive_eval="$outdir/${base_name}.r2.tsstes.pos.eval.txt"
-
-converted_bedgraph="$outdir/${base_name}.bw.bedGraph"
+# Final deliverables (only these remain)
+jscore_out="$outdir/${base_name}.jscore.txt"
+jpos_ptf_out="$outdir/${base_name}.jpos.ptf"
+tsstes_scores_out="$outdir/${base_name}.tsstes.scores.txt"
+tsstes_pos_out="$outdir/${base_name}.tsstes.pos.txt"
+combined_out="$outdir/${base_name}.combined.ptf"
 
 # LightGBM threshold flags
 declare -a score_flags=()
@@ -186,47 +164,73 @@ if [[ -n "$score_arg" ]]; then
   score_flags=(-s "$score_arg")
 fi
 
-# ---------------------------
-# Pipeline
-# ---------------------------
-if [ "$start_step" -le 1 ]; then
-  log "Step 1a: Sorting junctions by chr,start,end (header preserved)..."
-  sorted_junc="$outdir/${base_name}.sorted.bed"
-
-  sort_args=(-k1,1 -k2,2n -k3,3n)
-  if LC_ALL=C sort --help 2>/dev/null | grep -q -- '--parallel'; then
-    cpus="$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 1)"
-    sort_args+=(--parallel="$cpus")
+# Temp workspace for intermediates
+workdir="$(mktemp -d "${outdir}/.work.${base_name}.XXXX")"
+cleanup() {
+  if [[ -n "${KEEP_TEMP:-}" ]]; then
+    log "KEEP_TEMP set; leaving workspace: $workdir"
+  else
+    rm -rf "$workdir"
   fi
-  if LC_ALL=C sort --help 2>/dev/null | grep -q -- '-T'; then
-    sort_args+=(-T "${TMPDIR:-$outdir}")
-  fi
+}
+trap cleanup EXIT
 
-  first_line="$(head -n1 "$input_tiebrush_junc")"
-  {
-    if [[ "$first_line" =~ ^(track|#) ]]; then
-      printf '%s\n' "$first_line"
-      tail -n +2 "$input_tiebrush_junc" | LC_ALL=C sort "${sort_args[@]}"
-    else
-      printf 'track name=junctions\n'
-      LC_ALL=C sort "${sort_args[@]}" "$input_tiebrush_junc"
-    fi
-  } > "$sorted_junc"
+# Intermediates -> workdir
+sorted_junc="$workdir/${base_name}.sorted.bed"
+processed_junc="$workdir/${base_name}.jproc.txt"
+processed_junc_bundle="$workdir/${base_name}.jbund.txt"
+jpos_source="$workdir/${base_name}.jpos.txt"   # score-positive junctions (pre-PTF)
 
-  log "Step 1b: Processing junctions (sorted input)..."
-  "${helpers_dir}/process_junctions_perc.pl" "$sorted_junc" > "$processed_junc"
+# Annotation-dependent intermediates
+annotation_introns="$workdir/ann.introns.bed"
+annotation_uniquess="$workdir/${base_name}.ann.uss.bed"
+tiebrush_uniquess="$workdir/${base_name}.base.uss.bed"
+tiebrush_uniquess_in_annotation="$workdir/${base_name}.base.uss.in_ann.bed"
+tiebrush_unique_tsstes_in_annotation="$workdir/${base_name}.base.tsstes.in_ann.bed" # (may remain unused)
+
+# Round-2 / TSSTES intermediates
+round1_processed_junc="$workdir/${base_name}.r1.jproc.txt"
+round2_processed_bundles="$workdir/${base_name}.bund.txt"
+round2_processed_bundles_w_metrics="$workdir/${base_name}.r2.metrics.txt"
+round2_processed_bundles_w_metrics_ptf="$workdir/${base_name}.r2.metrics.ptf"
+round2_processed_bundles_w_metrics_tsstes_ptf="$workdir/${base_name}.tsstes.ptf"
+converted_bedgraph="$workdir/${base_name}.bw.bedGraph"
+
+# ---------------------------
+# Pipeline (always from start)
+# ---------------------------
+log "Step 1a: Sorting junctions by chr,start,end (header preserved)..."
+sort_args=(-k1,1 -k2,2n -k3,3n)
+if LC_ALL=C sort --help 2>/dev/null | grep -q -- '--parallel'; then
+  cpus="$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 1)"
+  sort_args+=(--parallel="$cpus")
+fi
+if LC_ALL=C sort --help 2>/dev/null | grep -q -- '-T'; then
+  sort_args+=(-T "${TMPDIR:-$workdir}")
 fi
 
-if [ "$start_step" -le 2 ]; then
-  log "Step 2: Adding bigWig signal..."
-  python3 "${helpers_dir}/process_tiebrush_round1_juncs_splicecov.py" \
-    "$input_tiebrush_bigwig" "$processed_junc" > "$processed_junc_bundle"
-fi
+first_line="$(head -n1 "$input_tiebrush_junc")"
+{
+  if [[ "$first_line" =~ ^(track|#) ]]; then
+    printf '%s\n' "$first_line"
+    tail -n +2 "$input_tiebrush_junc" | LC_ALL=C sort "${sort_args[@]}"
+  else
+    printf 'track name=junctions\n'
+    LC_ALL=C sort "${sort_args[@]}" "$input_tiebrush_junc"
+  fi
+} > "$sorted_junc"
+
+log "Step 1b: Processing junctions (sorted input)..."
+"${helpers_dir}/process_junctions_perc.pl" "$sorted_junc" > "$processed_junc"
+
+log "Step 2: Adding bigWig signal..."
+python3 "${helpers_dir}/process_tiebrush_round1_juncs_splicecov.py" \
+  "$input_tiebrush_bigwig" "$processed_junc" > "$processed_junc_bundle"
 
 # ---------------------------
-# Annotation-dependent block (Step 3 & Step 6)
+# Annotation-dependent block — results not persisted
 # ---------------------------
-if $anno_present && [ "$start_step" -le 3 ]; then
+if $anno_present; then
   log "Step 3: Building reference introns & unique splice sites (annotation provided)..."
   python3 "${helpers_dir}/gtf_to_intron_bed.py" "$input_annotation" "$annotation_introns"
   awk '{print $1, $2; print $1, $3}' "$annotation_introns" \
@@ -237,135 +241,89 @@ if $anno_present && [ "$start_step" -le 3 ]; then
     | sort -k1,1 -k2,2n | uniq > "$tiebrush_uniquess_in_annotation"
 fi
 
-if [ "$start_step" -le 4 ]; then
-  log "Step 4: LightGBM scoring (junctions)..."
-  python3 "${helpers_dir}/LightGBM_no_normscale.py" \
-    -i "$processed_junc_bundle" \
-    -o "$processed_junc_bundle_w_scores" \
-    ${score_flags[@]+"${score_flags[@]}"}
-fi
+log "Step 4: LightGBM scoring (junctions) -> ${jscore_out}"
+python3 "${helpers_dir}/LightGBM_no_normscale.py" \
+  -i "$processed_junc_bundle" \
+  -o "$jscore_out" \
+  ${score_flags[@]+"${score_flags[@]}"}
 
-if [ "$start_step" -le 5 ]; then
-  log "Step 5: Filtering score-positive junctions..."
-  awk '$NF==1' "$processed_junc_bundle_w_scores" > "$processed_junc_bundle_w_scores_scpositive"
-fi
+log "Step 5: Filtering score-positive junctions..."
+awk '$NF==1 || $NF==1.0' "$jscore_out" > "$jpos_source"
 
-if $anno_present && [ "$start_step" -le 6 ]; then
-  log "Step 6: Evaluation (junctions vs annotation splice sites)..."
-  if [[ -s "$processed_junc_bundle_w_scores_scpositive" && -s "$tiebrush_uniquess_in_annotation" ]]; then
+if $anno_present; then
+  log "Step 6: (Optional) Evaluation vs annotation (not persisted)..."
+  if [[ -s "$jpos_source" && -s "$tiebrush_uniquess_in_annotation" ]]; then
     set +e
     python "${helpers_dir}/evaluate_ptf_new.py" \
-      "$processed_junc_bundle_w_scores_scpositive" \
-      "$tiebrush_uniquess_in_annotation"
-    rc=$?
+      "$jpos_source" \
+      "$tiebrush_uniquess_in_annotation" || true
     set -e
-    if [[ $rc -ne 0 ]]; then
-      log "Step 6: WARNING: evaluate_ptf_new exited with $rc (likely empty inputs); continuing."
-    fi
   else
     log "Step 6: Skipped (no positives or no annotation splice sites)."
   fi
-elif ! $anno_present && [ "$start_step" -le 6 ]; then
-  log "Step 6: Skipped (no annotation provided)."
 fi
 
+log "Step 7: Emit PTF (junctions) -> ${jpos_ptf_out}"
+awk 'BEGIN{OFS="\t"} { print $1, $2, $5, $12 }' \
+  "$jpos_source" > "$jpos_ptf_out"
 
-if [ "$start_step" -le 7 ]; then
-  log "Step 7: Emit PTF (junctions)..."
-  awk 'BEGIN{OFS="\t"} { print $1, $2, $5, $12 }' \
-    "$processed_junc_bundle_w_scores_scpositive" \
-    > "$processed_junc_bundle_w_scores_scpositive_ptf"
-fi
+log "Step 8a: Converting BigWig -> BedGraph for round 2..."
+bigWigToBedGraph "$input_tiebrush_bigwig" "$converted_bedgraph"
 
-if [ "$start_step" -le 8 ]; then
-  log "Step 8a: Converting BigWig -> BedGraph for round 2..."
-  bigWigToBedGraph "$input_tiebrush_bigwig" "$converted_bedgraph"
+log "Step 8b: Re-processing original bedGraph for round 2..."
+"${helpers_dir}/process_tiebrush_original.pl" \
+  "$converted_bedgraph" "$round1_processed_junc" \
+  > "$round2_processed_bundles"
 
-  log "Step 8b: Re-processing original bedGraph for round 2..."
-  "${helpers_dir}/process_tiebrush_original.pl" \
-    "$converted_bedgraph" "$round1_processed_junc" \
-    > "$round2_processed_bundles"
-fi
+log "Step 9: Computing TSSTES metrics (round 2)..."
+python3 "${helpers_dir}/compute_round2_tsstes_metrics.py" \
+  "$round2_processed_bundles" "$input_tiebrush_bigwig" \
+  > "$round2_processed_bundles_w_metrics"
 
-if [ "$start_step" -le 9 ]; then
-  log "Step 9: Computing TSSTES metrics (round 2)..."
-  python3 "${helpers_dir}/compute_round2_tsstes_metrics.py" \
-    "$round2_processed_bundles" "$input_tiebrush_bigwig" \
-    > "$round2_processed_bundles_w_metrics"
-fi
+log "Step 10: Bundles -> PTF (round 2 TSSTES)..."
+"${helpers_dir}/splicecov_bundle2ptf.pl" \
+  "$round2_processed_bundles_w_metrics" \
+  > "$round2_processed_bundles_w_metrics_ptf"
 
-if [ "$start_step" -le 10 ]; then
-  log "Step 10: Bundles -> PTF (round 2 TSSTES)..."
-  "${helpers_dir}/splicecov_bundle2ptf.pl" \
-    "$round2_processed_bundles_w_metrics" \
-    > "$round2_processed_bundles_w_metrics_ptf"
-fi
+log "Step 11: Extract TSS/CPAS..."
+awk '($4=="TSS" || $4=="CPAS")' \
+  "$round2_processed_bundles_w_metrics_ptf" \
+  > "$round2_processed_bundles_w_metrics_tsstes_ptf"
 
-if [ "$start_step" -le 11 ]; then
-  log "Step 11: Extract TSS/CPAS..."
-  awk '($4=="TSS" || $4=="CPAS")' \
-    "$round2_processed_bundles_w_metrics_ptf" \
-    > "$round2_processed_bundles_w_metrics_tsstes_ptf"
-fi
+log "Step 12: LightGBM scoring (TSSTES) -> ${tsstes_scores_out}"
+python3 "${helpers_dir}/LightGBM_tss.py" \
+  -i "$round2_processed_bundles_w_metrics_tsstes_ptf" \
+  -o "$tsstes_scores_out" \
+  ${score_flags[@]+"${score_flags[@]}"}
 
-if [ "$start_step" -le 12 ]; then
-  log "Step 12: LightGBM scoring (TSSTES)..."
-  python3 "${helpers_dir}/LightGBM_tss.py" \
-    -i "$round2_processed_bundles_w_metrics_tsstes_ptf" \
-    -o "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores" \
-    ${score_flags[@]+"${score_flags[@]}"}
-fi
+log "Step 13: Filter TSSTES score-positive -> ${tsstes_pos_out}"
+awk '$NF==1 || $NF==1.0' \
+  "$tsstes_scores_out" > "$tsstes_pos_out"
 
-# After Step 12
-log "debug: files snapshot"
-ls -lh "$outdir" || true
-for f in \
-  "$processed_junc_bundle_w_scores" \
-  "$processed_junc_bundle_w_scores_scpositive" \
-  "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores" \
-  "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive" ; do
-  [[ -e "$f" ]] && { wc -l "$f" 2>/dev/null || true; } || log "debug: missing $f"
-done
-
-
-if [ "$start_step" -le 13 ]; then
-  log "Step 13: Filter TSSTES score-positive..."
-  awk '$NF==1.0' \
-    "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores" \
-    > "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive"
-fi
-
-if $anno_present && [ "$start_step" -le 14 ]; then
-  log "Step 14: Final TSSTES evaluation (annotation provided)..."
-  if [[ -s "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive" ]]; then
-    if [[ -s "$tiebrush_unique_tsstes_in_annotation" ]]; then
-      set +e
-      python "${helpers_dir}/evaluate_TSSTES_new.py" \
-        "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive" \
-        "$tiebrush_unique_tsstes_in_annotation" \
-        > "$outdir/${base_name}.r2.tsstes.pos.eval.txt"
-      rc=$?
-      set -e
-      if [[ $rc -ne 0 ]]; then
-        log "Step 14: WARNING: evaluate_TSSTES_new exited with $rc; continuing."
-      fi
-    else
-      log "Step 14: Skipped (no annotation TSSTES reference rows)."
-    fi
+if $anno_present; then
+  log "Step 14: (Optional) TSSTES evaluation vs annotation (not persisted)..."
+  if [[ -s "$tsstes_pos_out" && -s "$tiebrush_unique_tsstes_in_annotation" ]]; then
+    set +e
+    python "${helpers_dir}/evaluate_TSSTES_new.py" \
+      "$tsstes_pos_out" \
+      "$tiebrush_unique_tsstes_in_annotation" \
+      > /dev/null || true
+    set -e
   else
-    log "Step 14: Skipped (no TSSTES score-positive rows)."
+    log "Step 14: Skipped (no TSSTES positives or no annotation TSSTES reference)."
   fi
-elif ! $anno_present && [ "$start_step" -le 14 ]; then
-  log "Step 14: Skipped (no annotation provided)."
 fi
 
+log "Step 15: Combine ptfs -> ${combined_out}"
+"${helpers_dir}/combine_ptfs.sh" \
+  "$jpos_source" \
+  "$tsstes_pos_out" \
+  > "$combined_out"
 
-if [ "$start_step" -le 15 ]; then
-  log "Step 15: Combine ptfs..."
-  "${helpers_dir}/combine_ptfs.sh" \
-    "$processed_junc_bundle_w_scores_scpositive" \
-    "$round2_processed_bundles_w_metrics_tsstes_ptf_w_scores_scpositive" \
-    > "$outdir/${base_name}_combined.ptf"
-fi
+log "Final outputs:"
+ls -lh "$jscore_out" "$jpos_ptf_out" "$tsstes_scores_out" "$tsstes_pos_out" "$combined_out" || true
+
+log "Cleaning up intermediates..."
+# handled by trap cleanup on $workdir
 
 log "spliceCOV complete!"
