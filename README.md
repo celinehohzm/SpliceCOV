@@ -175,7 +175,7 @@ All outputs are written to the `out/` folder.
 After generating the `${basename}.combined.ptf` file, you can run Stringtie with the `-ptf` option. 
 
 Sample command:
-`stringtie sample.bam -ptf out/<basename>_combined.ptf -o sample.stringtie.gtf `
+`stringtie sample.bam --ptf out/<basename>_combined.ptf -o sample.stringtie.gtf `
 
 As shown in the figure below, SpliceCOV-guided assemblies consistently achieve higher precision without compromising sensitivity, as measured by the number of reference‐matching transcripts. Moreover, the precision gain increases with tissue cohort size, likely reflecting the cleaner coverage signals in larger sample sets.
 
