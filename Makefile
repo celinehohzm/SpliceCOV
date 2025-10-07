@@ -61,18 +61,19 @@ check-deps:
 	@command -v $(PYTHON) >/dev/null 2>&1 || { echo "Missing: $(PYTHON)" >&2; exit 1; }
 
 	@# Enforce Python >= 3.10
-	@$(PYTHON) - <<'PY'
-import sys
-req = (int("$(MIN_PY_MAJOR)"), int("$(MIN_PY_MINOR)"))
-cur = sys.version_info
-if (cur.major, cur.minor) < req:
-    print(f"ERROR: Python >= {req[0]}.{req[1]} required; found {cur.major}.{cur.minor}.{cur.micro}", file=sys.stderr)
-    print("Tip: create a new env, e.g.:", file=sys.stderr)
-    print("  conda create -n splicecov -c conda-forge -c bioconda python=3.11 lightgbm ucsc-bigwigtobedgraph -y", file=sys.stderr)
-    print("  conda activate splicecov", file=sys.stderr)
-    sys.exit(2)
-print(f"OK: Python {cur.major}.{cur.minor}.{cur.micro}")
-PY
+	@$(PYTHON) - <<-PY
+		import sys
+		req = (int("$(MIN_PY_MAJOR)"), int("$(MIN_PY_MINOR)"))
+		cur = sys.version_info
+		if (cur.major, cur.minor) < req:
+		    print(f"ERROR: Python >= {req[0]}.{req[1]} required; found {cur.major}.{cur.minor}.{cur.micro}", file=sys.stderr)
+		    print("Tip: create a new env, e.g.:", file=sys.stderr)
+		    print("  conda create -n splicecov -c conda-forge -c bioconda python=3.11 lightgbm ucsc-bigwigtobedgraph -y", file=sys.stderr)
+		    print("  conda activate splicecov", file=sys.stderr)
+		    sys.exit(2)
+		print(f"OK: Python {cur.major}.{cur.minor}.{cur.micro}")
+	PY
+
 
 	@# Try to ensure bigWigToBedGraph exists; attempt auto-install unless opted out
 	@if ! command -v $(UCSC_TOOL) >/dev/null 2>&1; then \
