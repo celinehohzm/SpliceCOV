@@ -12,10 +12,6 @@ When SpliceCOV's predictions are used to guide transcriptome assembly with Strin
 
 You can build from source by:
 ```bash
-conda create -n splicecov python=3.10 # Python version 3.10
-conda activate splicecov
-pip install lightgbm numpy pandas
-
 git clone https://github.com/celinehohzm/SpliceCOV.git
 cd SpliceCOV
 python3 -m pip install --user -r requirements.txt
@@ -27,13 +23,13 @@ Sample commands:
 
 ```bash
 # Minimal run (junction + coverage only)
-./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig
+splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig
 
 # Run with annotation (adds evaluation steps)
-./splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -a gencode.v43.annotation.gtf
+splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -a gencode.v43.annotation.gtf
 
 # Show help
-./splicecov.sh -h
+splicecov.sh -h
 ```
 
 ---
