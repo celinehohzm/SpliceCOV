@@ -9,9 +9,9 @@ SHAREDIR  := $(PREFIX)/share/splicecov
 PKGNAME   := splicecov
 
 # Python interpreter & minimum version
-PYTHON    ?= python3
-MIN_PY_MAJOR := 3
-MIN_PY_MINOR := 10
+PYTHON        ?= python3
+MIN_PY_MAJOR  := 3
+MIN_PY_MINOR  := 10
 
 # Entrypoint inside repo
 ENTRY     := scripts/spliceCOV.sh
@@ -59,22 +59,19 @@ check-deps:
 	@command -v sort    >/dev/null 2>&1 || { echo "Missing: sort"  >&2; exit 1; }
 	@command -v comm    >/dev/null 2>&1 || { echo "Missing: comm (coreutils)" >&2; exit 1; }
 	@command -v $(PYTHON) >/dev/null 2>&1 || { echo "Missing: $(PYTHON)" >&2; exit 1; }
-
-	@# Enforce Python >= 3.10
+	@# Enforce Python >= 3.10 (BSD make-safe heredoc)
 	@$(PYTHON) - <<-PY
 		import sys
 		req = (int("$(MIN_PY_MAJOR)"), int("$(MIN_PY_MINOR)"))
 		cur = sys.version_info
 		if (cur.major, cur.minor) < req:
-		    print(f"ERROR: Python >= {req[0]}.{req[1]} required; found {cur.major}.{cur.minor}.{cur.micro}", file=sys.stderr)
-		    print("Tip: create a new env, e.g.:", file=sys.stderr)
-		    print("  conda create -n splicecov -c conda-forge -c bioconda python=3.11 lightgbm ucsc-bigwigtobedgraph -y", file=sys.stderr)
-		    print("  conda activate splicecov", file=sys.stderr)
-		    sys.exit(2)
+			print(f"ERROR: Python >= {req[0]}.{req[1]} required; found {cur.major}.{cur.minor}.{cur.micro}", file=sys.stderr)
+			print("Tip: create a new env, e.g.:", file=sys.stderr)
+			print("  conda create -n splicecov -c conda-forge -c bioconda python=3.11 lightgbm ucsc-bigwigtobedgraph -y", file=sys.stderr)
+			print("  conda activate splicecov", file=sys.stderr)
+			sys.exit(2)
 		print(f"OK: Python {cur.major}.{cur.minor}.{cur.micro}")
 	PY
-
-
 	@# Try to ensure bigWigToBedGraph exists; attempt auto-install unless opted out
 	@if ! command -v $(UCSC_TOOL) >/dev/null 2>&1; then \
 	  if [ "$(SKIP_AUTO_DEPS)" != "1" ]; then \
@@ -88,7 +85,6 @@ check-deps:
 	  echo "       Or ensure it is on PATH or set PREFIX/BINDIR appropriately."; \
 	  exit 1; \
 	fi
-
 	@echo "Core dependencies found"
 	@$(PYTHON) -c "import lightgbm" >/dev/null 2>&1 && echo "Python: lightgbm available" || echo "Python: lightgbm not found (will install if $(REQ) exists)"
 
@@ -134,9 +130,15 @@ install-ucsc-bw2bg:
 # =========================================================
 python-deps:
 	@if [ -f "$(REQ)" ]; then \
-	  echo "Installing Python deps from $(REQ) (user scope) using $(PYTHON)"; \
-	  $(PYTHON) -m pip install --user --upgrade pip; \
-	  $(PYTHON) -m pip install --user -r "$(REQ)"; \
+	  echo "Installing Python deps from $(REQ) using $(PYTHON)"; \
+	  $(PYTHON) -m pip install --upgrade pip; \
+	  if [ -n "$$CONDA_PREFIX" ] || [ -n "$$VIRTUAL_ENV" ]; then \
+	    echo "(detected env) installing into the active environment"; \
+	    $(PYTHON) -m pip install -r "$(REQ)"; \
+	  else \
+	    echo "(no env) installing with --user"; \
+	    $(PYTHON) -m pip install --user -r "$(REQ)"; \
+	  fi; \
 	else \
 	  echo "No $(REQ); skipping Python deps"; \
 	fi
