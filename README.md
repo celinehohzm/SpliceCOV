@@ -174,6 +174,8 @@ All outputs are written to the `out/` folder.
 
 After generating the `${basename}.combined.ptf` file, you can run Stringtie with the `-ptf` option. 
 
+Check out Stringtie's manual here: https://ccb.jhu.edu/software/stringtie/index.shtml?t=manual
+
 Sample command:
 `stringtie sample.bam --ptf out/<basename>_combined.ptf -o sample.stringtie.gtf `
 
@@ -182,7 +184,6 @@ As shown in the figure below, SpliceCOV-guided assemblies consistently achieve h
 <img width="637" height="794" alt="image" src="https://github.com/user-attachments/assets/d186eed9-be27-40d9-b6d4-b610ce246eaf" />
 
  
-Check out Stringtie's manual here: https://ccb.jhu.edu/software/stringtie/index.shtml?t=manual
 
 --- 
 ## Tips & Troubleshooting
