@@ -27,10 +27,10 @@ Sample commands:
 
 ```bash
 # Minimal run (junction + coverage only)
-splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig
+splicecov.sh -j sample.tiebrush_junctions.bed -c sample.coverage.bigWig
 
 # Run with annotation (adds evaluation steps)
-splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -a gencode.v43.annotation.gtf
+splicecov.sh -j sample.tiebrush_junctions.bed -c sample.coverage.bigWig -a gencode.v43.annotation.gtf
 
 # Show help
 splicecov.sh -h
@@ -90,13 +90,13 @@ chr1    10545   10560   8
 
 If you have TieBrush junctions and a BigWig coverage file, run:
 
-`splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig`
+`splicecov.sh -j sample.tiebrush_junctions.bed -c sample.coverage.bigWig`
 
 **Prediction + Evaluation mode**
 
 If you also provide a **GTF annotation**, SpliceCOV will evaluate its predictions based on the input GTF file:
 
-`splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -a gencode.v43.annotation.gtf`
+`splicecov.sh -j sample.tiebrush_junctions.bed -c sample.coverage.bigWig -a gencode.v43.annotation.gtf`
 
 **Full SpliceCOV commands:**
 ```
