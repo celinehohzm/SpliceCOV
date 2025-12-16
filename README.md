@@ -27,13 +27,13 @@ Sample commands:
 
 ```bash
 # Minimal run (junction + coverage only)
-splicecov.sh -j sample.tiebrush_junctions.bed -c sample.coverage.bigWig
+splicecov -j sample.tiebrush_junctions.bed -c sample.coverage.bigWig
 
 # Run with annotation (adds evaluation steps)
-splicecov.sh -j sample.tiebrush_junctions.bed -c sample.coverage.bigWig -a gencode.v43.annotation.gtf
+splicecov -j sample.tiebrush_junctions.bed -c sample.coverage.bigWig -a gencode.v43.annotation.gtf
 
 # Show help
-splicecov.sh -h
+splicecov -h
 ```
 
 ---
@@ -90,17 +90,17 @@ chr1    10545   10560   8
 
 If you have TieBrush junctions and a BigWig coverage file, run:
 
-`splicecov.sh -j sample.tiebrush_junctions.bed -c sample.coverage.bigWig`
+`splicecov -j sample.tiebrush_junctions.bed -c sample.coverage.bigWig`
 
 **Prediction + Evaluation mode**
 
 If you also provide a **GTF annotation**, SpliceCOV will evaluate its predictions based on the input GTF file:
 
-`splicecov.sh -j sample.tiebrush_junctions.bed -c sample.coverage.bigWig -a gencode.v43.annotation.gtf`
+`splicecov -j sample.tiebrush_junctions.bed -c sample.coverage.bigWig -a gencode.v43.annotation.gtf`
 
 **Full SpliceCOV commands:**
 ```
-Usage: splicecov.sh -j <input_tiebrush_junc> -c <input_tiebrush_bigwig> [-a <annotation_gtf>] [-b <basename>] [-s <threshold>]
+Usage: splicecov -j <input_tiebrush_junc> -c <input_tiebrush_bigwig> [-a <annotation_gtf>] [-b <basename>] [-s <threshold>]
 
 Required:
   -j <file> : input TieBrush junction file 
@@ -153,10 +153,10 @@ All output files will be named like `out/${basename}.*`.
 **Examples:**
 ```
 # Stricter calling (fewer positives)
-splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -s 0.8
+splicecov -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -s 0.8
 
 # More permissive calling (more positives)
-splicecov.sh -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -s 0.25
+splicecov -j sample.tiebrush_junctions.txt -c sample.coverage.bigWig -s 0.25
 ```
 ---
 ## Output 
