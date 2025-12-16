@@ -42,13 +42,18 @@ while(<C>) { # read coverage file, one line at a time
   chomp;
   my ($chrname,$start,$end,$cov)=split(/\t/); # these are the info in the line
   $start++; # adjust start to get 1-based coordinates
-  
-  if($start>$bundleend+1 || ($chrname ne $chr)) { # new bundle if there is a change in chromosome or start is after bundleend and at a distance (there is at least a 1bp between them)
 
-    $bundleno=process_bundle(\@covg,\@junc,$chr,$bundleno); # process previous bundle first
-    if($chr ne $chrname) { $chr=$chrname; }  # update chromosome name
-    $bundleend=0; # set current bundleend
+  if($start>$bundleend+1 || ($chrname ne $chr)) {
+
+  $bundleno=process_bundle(\@covg,\@junc,$chr,$bundleno); # process previous bundle first
+  if($chr ne $chrname) {
+    $chr = $chrname;  # update chromosome name
+    print STDERR "Finding ${chr} TSS/TES candidates\n";
   }
+
+  $bundleend=0; # set current bundleend
+}
+
   
   if($end>$bundleend) { $bundleend=$end;} # update bundleend
   push(@covg,[($start,$end,$cov)]); # push 
@@ -107,8 +112,8 @@ sub process_bundle {
     if($len>$win && $seengoodavg) { # only consider bundles that are big enough and had a contiguous region above lowcov; default lowcov=5; and win=150
 
       # DEBUG only
-      print STDERR "bundle\t$chr\t$bundleno\t",$$covg[0][0],"\t",$$covg[$nb-1][1]," avg=",$avg," len=$len\n";
-      print STDERR "There are ",scalar(@s)," contiguous regions\n";
+      # print STDERR "bundle\t$chr\t$bundleno\t",$$covg[0][0],"\t",$$covg[$nb-1][1]," avg=",$avg," len=$len\n";
+      # print STDERR "There are ",scalar(@s)," contiguous regions\n";
       
       my $nj=scalar(@{$junc});      
       my @jend=sort { $$junc[$a][2] <=> $$junc[$b][2]} 0..($nj-1); # sort junctions based on their ends; only junction starts are sorted; jend stores junc indices in an order where ends are from smalles to biggest
@@ -186,10 +191,12 @@ sub process_records {
   my $n=scalar(@{$record}); # number of records
 
   # sanity check: make sure that last record is a tend
-  if($$record[-1][0] ne "tend") { print STDERR "End of bundle is not tend at position ",$$$record[-1][1],"\n";exit;}
+  # if($$record[-1][0] ne "tend") { print STDERR "End of bundle is not tend at position ",$$$record[-1][1],"\n";exit;}
+  if ($$record[-1][0] ne "tend") { exit; }
+
 
   # DEBUG only:
-  print STDERR "There are $n records\n";
+  # print STDERR "There are $n records\n";
   
   my $i=1; # current index for records
   
@@ -492,7 +499,7 @@ sub get_record {
 
   if(!$nextd && !$nextjs && !$nextje) { # only happens if $je reaches $nj, and all the other were already maxed out
     if($id==$nd && $js==$nj && $je ==$nj) { return($ib,$id,$js,$je,$prevpos);}
-    print STDERR "All null $chr prevpos=$prevpos nextd=$nextd nextjs=$nextjs nextje=$nextje $ib,$id,$js,$je,$nb,$nd,$nj\n";
+    # print STDERR "All null $chr prevpos=$prevpos nextd=$nextd nextjs=$nextjs nextje=$nextje $ib,$id,$js,$je,$nb,$nd,$nj\n";
     exit;
   }
 
@@ -1001,10 +1008,11 @@ sub get_drop { # compute drops in coverage in bundles > win+smallwin
 	$e++;
       }
       else {
-	if($tmps[$s][3]) {
-	  if($tmpe[$e][3] && $tmpe[$e][0]==$tmps[$s][0]) { print STDERR "Same start and end at position ",$tmpe[$e][0],"(",$tmpe[$e][0]+$start-1,") s=$s e=$e\n";exit;}					  
-	  push(@{$drop},[($tmps[$s][0]+$start-1,$tmps[$s][1],$tmps[$s][2])]);
-	}
+if ($tmps[$s][3]) {
+  if ($tmpe[$e][3] && $tmpe[$e][0] == $tmps[$s][0]) { exit; }
+  push(@{$drop}, [ $tmps[$s][0] + $start - 1, $tmps[$s][1], $tmps[$s][2] ]);
+}
+
 	$s++;
       }
     }
@@ -1076,7 +1084,7 @@ sub compute_perc {
   #  exit;
   #}
 
-  if($sumleft <0 || $sumright<0) { print STDERR "Negative coverage for window $l,$i,$r sumleft=$sumleft $sumright=$sumright\n";exit;}
+  # if($sumleft <0 || $sumright<0) { print STDERR "Negative coverage for window $l,$i,$r sumleft=$sumleft $sumright=$sumright\n";exit;}
 
   if($sumlefta>$sumright) {
     $avgl=($sumlefta-$sumright)/($i-$l);
