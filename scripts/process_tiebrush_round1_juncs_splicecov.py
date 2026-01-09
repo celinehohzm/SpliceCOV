@@ -31,13 +31,37 @@ def left_right_means(arr, center, strand, d=SMALL_DELTA):
     # “coverage at pos” used only conceptually; compute in-case you want it later
     cov_at_pos = float(arr[center]) if 0 <= center < arr.size else 0.0
 
-    # percent change and absolute change (same formulas you used)
-    if left_mean > 0 and right_mean > 0:
-        ratio = right_mean / left_mean if right_mean >= left_mean else left_mean / right_mean
-        perc_change = 1.0 - min(ratio, 1.0/ratio) if ratio != 0 else 0.0
-    else:
+    # # percent change and absolute change (same formulas you used)
+    # if left_mean > 0 and right_mean > 0:
+    #     ratio = right_mean / left_mean if right_mean >= left_mean else left_mean / right_mean
+    #     perc_change = 1.0 - min(ratio, 1.0/ratio) if ratio != 0 else 0.0
+    # else:
+    #     perc_change = 0.0
+    # abs_change = abs(right_mean - left_mean)
+
+    # percent change (with zero-substitution for exactly-one-zero) and absolute change (original means)
+    orig_left, orig_right = left_mean, right_mean
+
+    if left_mean == 0.0 and right_mean == 0.0:
+        # both zero → define no percent change
         perc_change = 0.0
-    abs_change = abs(right_mean - left_mean)
+    else:
+        # substitute 0.5 only for the side that is exactly zero (if exactly one is zero)
+        lm = 0.5 if (left_mean == 0.0 and right_mean != 0.0) else left_mean
+        rm = 0.5 if (right_mean == 0.0 and left_mean  != 0.0) else right_mean
+
+        # symmetric percent-change metric (ratio >= 1)
+        small = min(lm, rm)
+        large = max(lm, rm)
+        # 'small' cannot be zero here because:
+        #   - both-zero handled above
+        #   - exactly-one-zero got substituted to 1.0
+        ratio = large / small
+        perc_change = 1.0 - min(ratio, 1.0 / ratio)
+
+    # absolute change should reflect the *original* means
+    abs_change = abs(orig_right - orig_left)
+
 
     return cov_at_pos, left_mean, right_mean, perc_change, abs_change
 
