@@ -98,6 +98,32 @@ If you also provide a **GTF annotation**, SpliceCOV will evaluate its prediction
 
 `splicecov -j sample.tiebrush_junctions.bed -c sample.coverage.bigWig -a gencode.v43.annotation.gtf`
 
+**Evaluation-only mode (no re-running the pipeline)**
+
+If you have already run SpliceCOV and the prediction outputs exist in `out/`, you can run evaluation only without reprocessing junctions or coverage.
+
+This is useful when:
+
+Re-evaluating results against a different annotation
+
+Inspecting performance after changing thresholds
+
+Avoiding expensive recomputation
+
+`splicecov -b <basename> -a gencode.v43.annotation.gtf`
+
+In this mode:
+
+No junction or coverage files are required
+
+SpliceCOV reads:
+
+`out/<basename>.jscore.txt`
+
+`out/<basename>.tsstes.scores.txt`
+
+Only evaluation steps are executed
+
 **Full SpliceCOV commands:**
 ```
 Usage: splicecov -j <input_tiebrush_junc> -c <input_tiebrush_bigwig> [-a <annotation_gtf>] [-b <basename>] [-s <threshold>]
