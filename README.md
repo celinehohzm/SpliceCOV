@@ -64,7 +64,7 @@ Both of these files are typically produced by the TieBrush and TieCov tools (htt
 
 
 
-Junctions file format (columns in order: chr, junction_start, junction_end, junction_name, number_of_samples, strand):
+Junctions file format (columns in order: chr, junction_start, junction_end, junction_name, number_of_reads, strand):
 ```
 track name=junctions
 chr1    10620   21193   JUNC00000001    1       +
@@ -178,7 +178,7 @@ All outputs are written to the `out/` folder.
 - `${basename}`.jscore.txt — LightGBM scores in second last column, predicted label in last column (splice-sites)
 
   ```
-  chromosome      position        junction_id     num_samples     strand  perc    cov_diff        perc_cov_diff   junc_len        smooth_metric   cov_change_dir  event     confidence_score        predicted_label
+  chromosome      position        junction_id     num_reads     strand  perc    cov_diff        perc_cov_diff   junc_len        smooth_metric   cov_change_dir  event     confidence_score        predicted_label
   chr1    10620   JUNC00000001    1       +       0.0032-0.0001-1.0000-1.0000     10573   0.6095  56      56.2    1       JSTART  0.8504018054835413      1
   chr1    21194   JUNC00000001    1       +       0.0032-0.0001-1.0000-1.0000     10573   0.0127  41      0.2202  1       JEND    0.02303948168568817     0
   chr1    11348   JUNC00000002    1       -       1.0000-1.0000-1.0000-1.0000     62      0.0537  2       0.7333  1       JSTART  0.0     0
