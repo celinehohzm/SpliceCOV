@@ -25,7 +25,7 @@ LDFLAGS ?=
 LDLIBS  ?= -lm
 
 C_SRC   := scripts/process_tiebrush.c
-C_BIN   := bin/process_tiebrush
+C_BIN   := scripts/process_tiebrush
 
 # -------- Version (fallback if git not available) --------
 VERSION   := $(shell git describe --tags --always --dirty 2>/dev/null || echo 0.0.0)
