@@ -124,7 +124,8 @@ common_helpers=(
   "process_junctions_perc.pl"
   "process_tiebrush_round1_juncs_splicecov.py"
   "LightGBM_no_normscale.py"
-  "process_tiebrush_original.pl"
+  # "process_tiebrush_original.pl"
+  "process_tiebrush"
   "compute_round2_tsstes_metrics.py"
   "splicecov_bundle2ptf.pl"
   "LightGBM_tss.py"
@@ -350,7 +351,6 @@ jpos_source="$workdir/${base_name}.jpos.txt"
 tsstes_pos_tmp="$workdir/${base_name}.tsstes.pos.txt"
 jpos_ptf_tmp="$workdir/${base_name}.jpos.ptf"
 converted_bedgraph="$workdir/${base_name}.bw.bedGraph"
-round1_processed_junc="$workdir/${base_name}.r1.jproc.txt"
 round2_processed_bundles="$workdir/${base_name}.bund.txt"
 round2_processed_bundles_w_metrics="$workdir/${base_name}.r2.metrics.txt"
 round2_processed_bundles_w_metrics_ptf="$workdir/${base_name}.r2.metrics.ptf"
@@ -399,11 +399,16 @@ awk 'BEGIN{OFS="\t"} { print $1, $2, $5, $12 }' "$jpos_source" > "$jpos_ptf_tmp"
 log "Step 8a: Converting BigWig -> BedGraph for round 2..."
 bigWigToBedGraph "$input_tiebrush_bigwig" "$converted_bedgraph"
 
-log "Step 8b: Re-processing original bedGraph for round 2..."
-"${helpers_dir}/process_tiebrush_original.pl" \
-  "$converted_bedgraph" "$round1_processed_junc" \
-  > "$round2_processed_bundles"
+# log "Step 8b: Re-processing original bedGraph for round 2..."
+# "${helpers_dir}/process_tiebrush_original.pl" \
+#   "$converted_bedgraph" "$processed_junc" \
+#   > "$round2_processed_bundles"
 
+log "Step 8b: Re-processing original bedGraph for round 2..."
+"${helpers_dir}/process_tiebrush" \
+  "$converted_bedgraph" "$processed_junc" \
+  > "$round2_processed_bundles"
+  
 log "Step 9: Computing TSSTES metrics (round 2)..."
 python3 "${helpers_dir}/compute_round2_tsstes_metrics.py" \
   "$round2_processed_bundles" "$input_tiebrush_bigwig" \
