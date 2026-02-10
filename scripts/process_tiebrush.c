@@ -209,7 +209,7 @@ static void clear_drop(void) {
 
 static void clear_record(void) {
     for (int i = 0; i < record_size; i++) {
-        free(record[record_size].indices);
+        free(record[i].indices);
     }
     record_size = 0;
 }
