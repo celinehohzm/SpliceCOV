@@ -14,7 +14,7 @@ You can build from source by:
 ```bash
 git clone https://github.com/celinehohzm/SpliceCOV.git
 cd SpliceCOV
-conda env create -f /SpliceCOV/environment.yml
+conda env create -f SpliceCOV/environment.yml
 conda activate splicecov
 make PREFIX="$HOME/.local" release
 
