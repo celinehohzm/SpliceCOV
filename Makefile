@@ -18,6 +18,15 @@ ENTRY     := scripts/spliceCOV.sh
 SHIP_DIRS := scripts bin
 REQ       := requirements.txt
 
+# -------- C build (process_tiebrush) --------
+CC      ?= cc
+CFLAGS  ?= -O2 -std=c17 -Wall -Wextra
+LDFLAGS ?=
+LDLIBS  ?= -lm
+
+C_SRC   := scripts/process_tiebrush.c
+C_BIN   := bin/process_tiebrush
+
 # -------- Version (fallback if git not available) --------
 VERSION   := $(shell git describe --tags --always --dirty 2>/dev/null || echo 0.0.0)
 
@@ -26,7 +35,7 @@ SKIP_AUTO_DEPS ?= 0          # set to 1 to disable auto-install of UCSC tools
 FORCE_REINSTALL ?= 0         # set to 1 to force re-install of UCSC tool
 UCSC_TOOL ?= bigWigToBedGraph
 
-.PHONY: release install uninstall check-deps python-deps print-locations help \
+.PHONY: release install uninstall check-deps python-deps build-c clean print-locations help \
         install-ucsc-bw2bg _copy-tree _make-launcher
 
 # =========================================================
@@ -38,7 +47,9 @@ release: install
 	@echo "  Shared files: $(SHAREDIR)"
 	@echo "Run: $(PKGNAME) -h"
 
-install: check-deps python-deps print-locations _copy-tree _make-launcher
+# NOTE: build-c compiles scripts/process_tiebrush.c -> bin/process_tiebrush
+# Then _copy-tree ships bin/ into $(SHAREDIR)/bin because SHIP_DIRS includes "bin".
+install: check-deps python-deps build-c print-locations _copy-tree _make-launcher
 	@echo "→ Installed files under $(SHAREDIR):"
 	@find "$(SHAREDIR)" -maxdepth 2 -type f -print | sed 's/^/   /'
 
@@ -59,6 +70,7 @@ check-deps:
 	@command -v sort    >/dev/null 2>&1 || { echo "Missing: sort"  >&2; exit 1; }
 	@command -v comm    >/dev/null 2>&1 || { echo "Missing: comm (coreutils)" >&2; exit 1; }
 	@command -v $(PYTHON) >/dev/null 2>&1 || { echo "Missing: $(PYTHON)" >&2; exit 1; }
+	@command -v $(CC)   >/dev/null 2>&1 || { echo "Missing: $(CC) (C compiler)" >&2; exit 1; }
 	@# Enforce Python >= 3.10 (portable one-liner; no heredoc)
 	@$(PYTHON) -c 'import sys; req=($(MIN_PY_MAJOR),$(MIN_PY_MINOR)); cur=sys.version_info; \
 ok=(cur.major,cur.minor)>=req; \
@@ -133,6 +145,19 @@ python-deps:
 	else \
 	  echo "No $(REQ); skipping Python deps"; \
 	fi
+
+# =========================================================
+# C build
+# =========================================================
+build-c: $(C_BIN)
+
+$(C_BIN): $(C_SRC)
+	@echo "Compiling $< -> $@"
+	@mkdir -p "$(@D)"
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o "$@" "$<" $(LDLIBS)
+
+clean:
+	@rm -f "$(C_BIN)"
 
 # =========================================================
 # Install payload + launcher
@@ -212,6 +237,10 @@ print-locations:
 	@echo "ENTRY    = $(ENTRY)"
 	@echo "PYTHON   = $(PYTHON)"
 	@echo "MIN_PY   = $(MIN_PY_MAJOR).$(MIN_PY_MINOR)"
+	@echo "CC       = $(CC)"
+	@echo "CFLAGS   = $(CFLAGS)"
+	@echo "C_SRC    = $(C_SRC)"
+	@echo "C_BIN    = $(C_BIN)"
 	@echo "SKIP_AUTO_DEPS = $(SKIP_AUTO_DEPS)"
 	@echo "FORCE_REINSTALL = $(FORCE_REINSTALL)"
 
@@ -219,13 +248,18 @@ help:
 	@echo "SpliceCOV Make targets"
 	@echo "  make release                          Install into \$$PREFIX (default: /usr/local)"
 	@echo "  make PREFIX=\$$HOME/.local release     Install into user prefix"
+	@echo "  make build-c                          Compile scripts/process_tiebrush.c -> bin/process_tiebrush"
+	@echo "  make clean                            Remove compiled C binary"
 	@echo "  make uninstall                        Remove installed launcher and shared dir"
 	@echo "  make help                             Show this help"
 	@echo ""
 	@echo "Variables:"
 	@echo "  PYTHON=$(PYTHON) (override to choose interpreter)"
 	@echo "  MIN_PY=$(MIN_PY_MAJOR).$(MIN_PY_MINOR) (required minimum)"
+	@echo "  CC=$(CC) (override compiler)"
+	@echo "  CFLAGS=$(CFLAGS) (override C flags)"
 	@echo ""
 	@echo "Auto-deps:"
 	@echo "  SKIP_AUTO_DEPS=1   Disable auto-install of UCSC tool"
 	@echo "  FORCE_REINSTALL=1  Force reinstall of UCSC tool"
+
