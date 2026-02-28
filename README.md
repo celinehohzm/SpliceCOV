@@ -216,8 +216,6 @@ As shown in the figure below, SpliceCOV-guided assemblies consistently achieve h
 
 <img width="637" height="794" alt="image" src="https://github.com/user-attachments/assets/d186eed9-be27-40d9-b6d4-b610ce246eaf" />
 
- 
-
 --- 
 ## Tips & Troubleshooting
 
@@ -226,6 +224,21 @@ As shown in the figure below, SpliceCOV-guided assemblies consistently achieve h
 - Use `-b` to keep runs tidy and identifiable (e.g., -b `gtex_v8_brain_cortex`).
 
 - Tune `-s` to adjust precision/recall in your calls; higher thresholds are stricter.
+
+---
+## Verifying Installation with Included Example
+
+To validate the installation and familiarize yourself with the pipeline, you can run the included example, which borrows data from the [TieBrush repository](https://github.com/alevar/tiebrush). For instructions on how to build the coverage and junctions inputs yourself using aligned samples, please refer to the TieBrush documentation.
+
+To run the example, navigate to the `examples` directory and execute the pipeline:
+
+```bash
+cd examples
+
+splicecov -j t1.junctions.bed -c t1.coverage.bigWig -b example
+```
+
+This will run SpliceCOV on the example data. The final event coordinate outputs will be saved in the `examples/out/` directory with the prefix `example`.
 
 ---
 **Questions or issues?** Please open a GitHub issue with your command line, environment (OS, Python version, tool versions), and a short log excerpt.
