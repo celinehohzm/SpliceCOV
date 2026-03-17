@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+title: "SpliceCOV"
+message: "If you use this software, please cite it using the metadata below."
+type: software
+authors:
+  - family-names: "Hoh"
+    given-names: "Celine"
+    email: "choh1@cs.jhu.edu"
+    affiliation: "Department of Computer Science, Johns Hopkins University; Center for Computational Biology, Johns Hopkins University"
+  - family-names: "Shinder"
+    given-names: "Ida"
+    affiliation: "Center for Computational Biology, Johns Hopkins University; Cross Disciplinary Graduate Program in Biomedical Sciences, Johns Hopkins School of Medicine"
+  - family-names: "Chao"
+    given-names: "Kuan-Hao"
+    affiliation: "Department of Computer Science, Johns Hopkins University; Center for Computational Biology, Johns Hopkins University"
+  - family-names: "Varabyou"
+    given-names: "Ales"
+    affiliation: "Department of Computer Science, Johns Hopkins University; Center for Computational Biology, Johns Hopkins University; Department of Biomedical Engineering, Johns Hopkins University"
+  - family-names: "Pertea"
+    given-names: "Mihaela"
+    email: "mpertea@jhu.edu"
+    affiliation: "Department of Computer Science, Johns Hopkins University; Center for Computational Biology, Johns Hopkins University; Department of Biomedical Engineering, Johns Hopkins University"
+repository-code: "https://github.com/celinehohzm/SpliceCOV"
+url: "https://github.com/celinehohzm/SpliceCOV"
+abstract: "SpliceCOV is a software tool for accurate identification of splice sites and transcript boundaries from RNA sequencing coverage and junction data."
+keywords:
+  - RNA-seq
+  - splice site detection
+  - transcript boundaries
+  - transcriptome assembly
+  - machine learning
+license: "MIT"
+version: "1.0.0"
+date-released: "2026-02-16"
