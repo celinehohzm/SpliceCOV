@@ -1,10 +1,26 @@
-# SpliceCOV: Accurate Identification of Transcriptional Features from RNA Sequencing
+# SpliceCOV: Supervised Filtering of RNA-seq-derived Transcript Features
 
-SpliceCOV is a segmentation pipeline for **detecting splice sites and transcription start/end sites (TSS/TES) from RNA-Seq coverage**. SpliceCOV follows a two-step approach: it first employs a fast heuristic to identify candidate changepoints, and then applies a LightGBM decision-tree classifier to filter and refine these candidates, generating high-confidence transcriptional boundaries. 
+SpliceCOV is a supervised framework for filtering RNA-seq-derived transcriptional features, including splice sites and transcript start/end sites (TSS/TES). Its goal is to distinguish candidate transcript features that are well supported by RNA-seq evidence from candidates that are more likely to reflect transcriptional noise, incomplete RNA processing, alignment artifacts, or weak background transcription.
 
-The required inputs for SpliceCOV are the junctions (in `bed` format) file and coverage (in `bigwig` format) file. It is recommended to generate these using Tiebrush/TieCOV (https://github.com/alevar/tiebrush).
+SpliceCOV handles splice sites and transcript boundaries differently because the available evidence differs between these tasks. For splice-site filtering, candidate donor and acceptor sites are obtained directly from observed splice junctions. Each junction contributes candidate splice-site coordinates, which are scored by a trained LightGBM classifier using coverage- and junction-derived features. SpliceCOV therefore does not perform de novo splice-site prediction or exhaustive coverage segmentation for splice sites.
 
-When SpliceCOV's predictions are used to guide transcriptome assembly with StringTie's  `--ptf` option (https://ccb.jhu.edu/software/stringtie/index.shtml?t=manual),  the resulting transcripts exhibit increased precision without sacrificing sensitivity. As the number of samples per tissue increases, SpliceCOV continues to improve its accuracy in detecting transcripts, highlighting its scalability. 
+For TSS/TES detection, where no equivalent junction-derived candidate set is available, SpliceCOV first uses a coverage-based heuristic to propose candidate transcript boundaries from directional changes in RNA-seq coverage. These candidate boundaries are then filtered using a separate LightGBM classifier trained on local coverage-derived features.
+
+SpliceCOV requires two main inputs:
+
+1. A splice-junction file in BED format, listing candidate donor–acceptor pairs with supporting read counts.
+2. A genome-wide coverage track in bigWig format, reporting RNA-seq read depth.
+
+We recommend generating these inputs with TieBrush and TieCov:
+https://github.com/alevar/tiebrush
+
+SpliceCOV can be applied to either single-sample or multi-sample RNA-seq data. When multiple samples from the same tissue or condition are available, we recommend first aggregating junction and coverage evidence with TieBrush and TieCov before running SpliceCOV.
+
+SpliceCOV outputs filtered splice-site and transcript-boundary predictions, including point-feature files that can be supplied to StringTie using the `--ptf` option:
+https://ccb.jhu.edu/software/stringtie/index.shtml?t=manual
+
+When SpliceCOV-filtered features are used to guide StringTie transcriptome assembly, transcript-level precision increases without reducing sensitivity. SpliceCOV is designed to reduce noisy RNA-seq-derived candidate features while preserving biologically supported transcript structure.
+
 
 ---
 
