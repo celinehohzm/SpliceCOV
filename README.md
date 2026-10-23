@@ -244,14 +244,16 @@ As shown in the figure below, SpliceCOV-guided assemblies consistently achieve h
 - Tune `-s` to adjust precision/recall in your calls; higher thresholds are stricter.
 
 ---
-**Citation** 
+## Citation
 
-SpliceCOV is now published in Genes! If you use this tool, we would really appreciate if you could cite us:
+SpliceCOV is now published in _Genes_! If you use this tool, we would really appreciate if you could cite us:
 
 Hoh, C.; Shinder, I.; Chao, K.-H.; Varabyou, A.; Pertea, M. SpliceCOV: Supervised Filtering of RNA-Seq-Derived Transcript Features Improves Transcriptome Assembly. Genes 2026, 17, 1307. https://doi.org/10.3390/genes17101307
 
 ---
-**Questions or issues?** Please open a GitHub issue with your command line, environment (OS, Python version, tool versions), and a short log excerpt.
+## Questions or issues?
+
+Please open a GitHub issue with your command line, environment (OS, Python version, tool versions), and a short log excerpt.
 
 
 
