@@ -245,7 +245,9 @@ As shown in the figure below, SpliceCOV-guided assemblies consistently achieve h
 
 ---
 **Citation** 
-If you use this tool, we would really appreciate if you could cite us!
+
+SpliceCOV is now published in Genes! If you use this tool, we would really appreciate if you could cite us:
+
 Hoh, C.; Shinder, I.; Chao, K.-H.; Varabyou, A.; Pertea, M. SpliceCOV: Supervised Filtering of RNA-Seq-Derived Transcript Features Improves Transcriptome Assembly. Genes 2026, 17, 1307. https://doi.org/10.3390/genes17101307
 
 ---
